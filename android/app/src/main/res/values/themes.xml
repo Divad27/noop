@@ -11,8 +11,18 @@
     -->
     <style name="Theme.NOOP" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/surface_base</item>
-        <item name="android:statusBarColor">@color/surface_base</item>
-        <item name="android:navigationBarColor">@color/surface_base</item>
+        <!--
+          System bars are TRANSPARENT, not a fixed colour. The app is edge-to-edge
+          (WindowCompat.setDecorFitsSystemWindows=false) and Light/Dark/System-themed, so the
+          Compose background (the AppRoot Scaffold's containerColor = Palette.surfaceBase, which
+          re-resolves per theme) must show THROUGH the status/nav bars to match the active theme.
+          A hardcoded dark surface_base here painted a near-black bar over the light theme's
+          warm-paper background — most visible on devices with a tall status bar / camera cutout
+          (#578). Bar ICON appearance is still driven per-theme at runtime by NoopTheme via
+          WindowInsetsControllerCompat (isAppearanceLightStatusBars).
+        -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>
