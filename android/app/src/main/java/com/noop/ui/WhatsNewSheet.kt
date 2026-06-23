@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,14 +97,14 @@ private fun Header(onClose: () -> Unit) {
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Overline("What's new", color = Palette.textTertiary)
+            Overline(stringResource(R.string.whatsnew_overline), color = Palette.textTertiary)
             Text("NOOP ${AppChangelog.CURRENT_VERSION}", style = NoopType.display(26f), color = Palette.textPrimary)
-            Text("Release notes", style = NoopType.caption, color = Palette.textSecondary)
+            Text(stringResource(R.string.whatsnew_release_notes), style = NoopType.caption, color = Palette.textSecondary)
         }
         IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
             Icon(
                 Icons.Filled.Close,
-                contentDescription = "Close",
+                contentDescription = stringResource(R.string.adddevice_close),
                 tint = Palette.textTertiary,
                 modifier = Modifier.size(22.dp),
             )
@@ -115,7 +118,7 @@ private fun Header(onClose: () -> Unit) {
 private fun ExpectationsCard() {
     NoopCard(padding = 20.dp, tint = Palette.accent) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Overline("What to expect")
+            Overline(stringResource(R.string.whatsnew_what_to_expect))
             AppChangelog.expectations.forEach { e ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -134,8 +137,14 @@ private fun ExpectationsCard() {
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
-                        Text(e.title, style = NoopType.headline, color = Palette.textPrimary)
-                        Text(e.body, style = NoopType.subhead, color = Palette.textSecondary)
+                        Text(
+                            if (e.titleRes != 0) stringResource(e.titleRes) else e.title,
+                            style = NoopType.headline, color = Palette.textPrimary,
+                        )
+                        Text(
+                            if (e.bodyRes != 0) stringResource(e.bodyRes) else e.body,
+                            style = NoopType.subhead, color = Palette.textSecondary,
+                        )
                     }
                 }
             }
@@ -205,7 +214,7 @@ private fun Footer(onClose: () -> Unit) {
                 contentColor = Palette.surfaceBase,
             ),
         ) {
-            Text("Got it", style = NoopType.captionNumber)
+            Text(stringResource(R.string.scoring_got_it), style = NoopType.captionNumber)
         }
     }
 }

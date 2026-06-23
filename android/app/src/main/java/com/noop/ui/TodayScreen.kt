@@ -79,6 +79,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +91,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import android.app.DatePickerDialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noop.R
 import com.noop.analytics.Baselines
 import com.noop.analytics.HydrationGoal
 import com.noop.analytics.HydrationStore
@@ -233,7 +235,13 @@ fun TodayScreen(
     // Keep the explicit calendar date visible alongside Today/Yesterday so the logical-day remap stays
     // honest — between midnight and 04:00 "Today" still points at the prior calendar date, and showing
     // that date makes it obvious which day's row is on screen (#144).
-    val dayLabel = remember(selectedDayOffset, selectedDay, selectedDayKey) {
+    // Display-only unit system + the SI profile weight, read once like every other Settings-backed
+    // preference (SharedPreferences isn't reactive — a Settings write triggers recomposition).
+    val context = LocalContext.current
+    // The day-label is built off the @Composable scope in a remember; the "Today · <date>" /
+    // "Yesterday · <date>" templates are formatted via context.getString so the positional date arg lands
+    // properly. Mirrors today_day_label_today / today_day_label_yesterday.
+    val dayLabel = remember(selectedDayOffset, selectedDay, selectedDayKey, context) {
         // Date the label by the row ACTUALLY on screen, not the raw logical date. `selectedDayKey` already
         // follows the resolver's `today?.day` at offset 0, so when the resolver surfaces yesterday's
         // complete row (today not scored yet) the date now reads that row's day — instead of stamping
@@ -242,14 +250,11 @@ fun TodayScreen(
         val keyDate = runCatching { LocalDate.parse(selectedDayKey) }.getOrNull() ?: selectedDay
         val date = keyDate.format(DateTimeFormatter.ofPattern("EEE, d MMM", Locale.US))
         when (selectedDayOffset) {
-            0 -> "Today · $date"
-            1 -> "Yesterday · $date"
+            0 -> context.getString(R.string.today_day_label_today, date)
+            1 -> context.getString(R.string.today_day_label_yesterday, date)
             else -> date
         }
     }
-    // Display-only unit system + the SI profile weight, read once like every other Settings-backed
-    // preference (SharedPreferences isn't reactive — a Settings write triggers recomposition).
-    val context = LocalContext.current
     val unitSystem = UnitPrefs.system(context)
     // Effort display scale (#268) — drives the Effort tile's value + caption. Display-only.
     val effortScale = UnitPrefs.effortScale(context)
@@ -407,12 +412,16 @@ fun TodayScreen(
         if (newestKey <= previousKey) return@LaunchedEffect         // recompute churn, not new history
         val added = days.map { it.day }.toSet().count { it > previousKey }
         if (added <= 0) return@LaunchedEffect
-        val daysWord = if (added == 1) "day" else "days"
+        // Off-composable inbox post — resolve via context.getString (the singular/plural day word + the
+        // body template). Mirrors the Swift announceNewDaysIfNeeded copy.
+        val daysWord = context.getString(
+            if (added == 1) R.string.today_day_word_singular else R.string.today_day_word_plural,
+        )
         store.post(
             UpdateItem(
                 kind = UpdateKind.READING,
-                title = "New data added",
-                message = "$added new $daysWord of history is ready in Trends.",
+                title = context.getString(R.string.today_new_data_added_title),
+                message = context.getString(R.string.today_new_data_added_body, added, daysWord),
                 deepLink = "trends",
             ),
         )
@@ -736,13 +745,14 @@ fun TodayScreen(
                 ScoreStateNote(scoreState)
             }
             if (selectedDayOffset != 0 || !scoresBuildingDismissed) {
+                // Hoisted ahead of the dismiss lambda (stringResource is @Composable-only): the card title +
+                // the inbox-restore title/message the × posts. Mirrors the iOS scores-building card.
+                val scoresBuildingTitle = stringResource(R.string.today_data_pending_title)
+                val scoresBuildingMessage = stringResource(R.string.today_scores_building_message)
                 Box(modifier = Modifier.fillMaxWidth()) {
                     DataPendingNote(
-                        title = "Live now. Your scores are building.",
-                        body = "Your live heart rate is working from the strap, and recovery, strain " +
-                            "and sleep build from it over your next few nights of wear, sharpening as it " +
-                            "learns your baseline. Want your full history instantly? Import your WHOOP " +
-                            "export in Data Sources and it backfills in about a minute.",
+                        title = scoresBuildingTitle,
+                        body = stringResource(R.string.today_data_pending_body),
                     )
                     // The × is only meaningful for today's card (a past day's note isn't dismissed).
                     if (selectedDayOffset == 0 && updateStore != null) {
@@ -751,8 +761,8 @@ fun TodayScreen(
                             onClick = {
                                 dismissTodayCard(
                                     CARD_SCORES_BUILDING,
-                                    "Live now. Your scores are building.",
-                                    "Charge, Effort and Rest build over your next few nights of wear.",
+                                    scoresBuildingTitle,
+                                    scoresBuildingMessage,
                                 )
                             },
                         )
@@ -884,8 +894,7 @@ fun TodayScreen(
                     modifier = Modifier.size(Metrics.iconSmall),
                 )
                 Text(
-                    "No cardio load yet — Effort builds once your heart rate climbs into your effort " +
-                        "zone (around 50% of your heart-rate reserve). A calm day honestly reads near zero.",
+                    stringResource(R.string.today_no_cardio_load_yet_effort),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
@@ -921,7 +930,11 @@ fun TodayScreen(
         item {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.weight(1f)) {
-                SectionHeader("Key Metrics", overline = dayLabel, trailing = "14-day trend")
+                SectionHeader(
+                    stringResource(R.string.today_key_metrics),
+                    overline = dayLabel,
+                    trailing = stringResource(R.string.today_14_day_trend),
+                )
             }
             TextButton(
                 onClick = { showMetricsEditor = true },
@@ -929,11 +942,11 @@ fun TodayScreen(
             ) {
                 Icon(
                     Icons.Filled.Tune,
-                    contentDescription = "Edit Key Metrics",
+                    contentDescription = stringResource(R.string.today_edit_key_metrics_cd),
                     modifier = Modifier.size(Metrics.iconSmall),
                 )
                 Spacer(Modifier.width(4.dp))
-                Text("Edit", style = NoopType.footnote)
+                Text(stringResource(R.string.today_edit), style = NoopType.footnote)
             }
         }
         }
@@ -1052,7 +1065,11 @@ fun TodayScreen(
  */
 @Composable
 private fun UpdateBell(unreadCount: Int, onClick: () -> Unit) {
-    val label = if (unreadCount > 0) "Updates, $unreadCount unread" else "Updates"
+    val label = if (unreadCount > 0) {
+        stringResource(R.string.today_updates_unread, unreadCount)
+    } else {
+        stringResource(R.string.today_updates)
+    }
     Box(
         // The outer Box is NOT clipped so the gold count pill can overflow the disc's top-trailing corner;
         // the inset disc inside carries the CircleShape clip + fill. There's no ripple (indication = null).
@@ -1110,11 +1127,12 @@ private fun UpdateBell(unreadCount: Int, onClick: () -> Unit) {
  */
 @Composable
 private fun TodayCardDismissButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val dismissCd = stringResource(R.string.today_dismiss_to_updates_cd)
     IconButton(
         onClick = onClick,
         modifier = modifier
             .size(Metrics.iconButton)
-            .semantics { contentDescription = "Dismiss to Updates" },
+            .semantics { contentDescription = dismissCd },
     ) {
         Icon(
             Icons.Filled.Close,
@@ -1127,6 +1145,7 @@ private fun TodayCardDismissButton(onClick: () -> Unit, modifier: Modifier = Mod
 
 @Composable
 private fun QuickActionDisc(onClick: () -> Unit) {
+    val quickActionsCd = stringResource(R.string.today_quick_actions_cd)
     Box(
         modifier = Modifier
             // Uniform 36dp top-bar icon ([Metrics.iconButton]) so the + matches the recording light, bell
@@ -1142,7 +1161,7 @@ private fun QuickActionDisc(onClick: () -> Unit) {
                 indication = null,
                 onClick = onClick,
             )
-            .semantics { contentDescription = "Quick actions" },
+            .semantics { contentDescription = quickActionsCd },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -1158,6 +1177,28 @@ private fun QuickActionDisc(onClick: () -> Unit) {
 // MARK: - Scoring-guide affordances (ⓘ + first-run card)
 
 /**
+ * @Composable DISPLAY resolver for a [ScoreSection]'s label (Charge / Effort / Rest). The
+ * [ScoreSection.label] getter stays canonical en-US (it backs the scoring-guide deep-link + tests); this
+ * routes only the RENDERED label through the localized score-name strings, the same producer-vs-display
+ * split the rest of the i18n uses. Mirrors the localized Charge/Effort/Rest naming everywhere else on Today.
+ */
+@Composable
+private fun scoreSectionLabel(section: ScoreSection): String = when (section) {
+    ScoreSection.CHARGE -> stringResource(R.string.today_charge)
+    ScoreSection.EFFORT -> stringResource(R.string.today_effort)
+    ScoreSection.REST -> stringResource(R.string.today_rest)
+}
+
+/** Localized DISPLAY label for a [DomainTheme] world; DomainTheme.label stays canonical en-US (logic name). */
+@Composable
+private fun domainThemeLabel(domain: DomainTheme): String = when (domain) {
+    DomainTheme.Charge -> stringResource(R.string.today_charge)
+    DomainTheme.Effort -> stringResource(R.string.today_effort)
+    DomainTheme.Rest -> stringResource(R.string.today_rest)
+    DomainTheme.Stress -> stringResource(R.string.nav_stress)
+}
+
+/**
  * The small ⓘ that opens the scoring guide. Used on the Charge ring and the Effort / Rest tiles.
  * [section] only tunes the accessibility label; the deep-link target is carried by [onClick]'s
  * call site. Icon-only, so it always carries a content description. [compact] shrinks the hit-target
@@ -1170,7 +1211,9 @@ private fun ScoreInfoButton(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
-    val label = section?.let { "How ${it.label} is calculated" } ?: "How this score is calculated"
+    val label = section?.let {
+        stringResource(R.string.today_how_score_is_calculated, scoreSectionLabel(it))
+    } ?: stringResource(R.string.today_how_this_score_is_calculated)
     val button = if (compact) 24.dp else Metrics.iconButton
     val glyph = if (compact) 16.dp else Metrics.iconSmall
     IconButton(onClick = onClick, modifier = modifier.size(button)) {
@@ -1200,13 +1243,14 @@ private fun ScoringGuideIntroCard(onOpen: () -> Unit, onDismiss: () -> Unit) {
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("New here?", style = NoopType.headline, color = Palette.textPrimary)
+                Text(stringResource(R.string.today_onboard_title), style = NoopType.headline, color = Palette.textPrimary)
                 Spacer(Modifier.weight(1f))
+                val dismissCd = stringResource(R.string.today_dismiss_cd)
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
                         .size(Metrics.iconButton)
-                        .semantics { contentDescription = "Dismiss" },
+                        .semantics { contentDescription = dismissCd },
                 ) {
                     Icon(
                         Icons.Filled.Close,
@@ -1217,13 +1261,13 @@ private fun ScoringGuideIntroCard(onOpen: () -> Unit, onDismiss: () -> Unit) {
                 }
             }
             Text(
-                "See how Charge, Effort and Rest are calculated — and how they differ from WHOOP.",
+                stringResource(R.string.today_onboard_body),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onOpen) {
-                    Text("See how it works", style = NoopType.captionNumber, color = Palette.accent)
+                    Text(stringResource(R.string.today_onboard_cta), style = NoopType.captionNumber, color = Palette.accent)
                 }
             }
         }
@@ -1239,10 +1283,12 @@ private fun ScoringGuideIntroCard(onOpen: () -> Unit, onDismiss: () -> Unit) {
 // graphical date picker (the older/newer chevrons fold into the picker, as on iOS).
 
 /** The short day-nav label: Today / Yesterday / "EEE d MMM", driven by the screen's own offset + day
- *  (NOT LocalDate.now()) so the header label and the data day never drift. */
+ *  (NOT LocalDate.now()) so the header label and the data day never drift. @Composable so the Today /
+ *  Yesterday words read from the localized resources; the date branch keeps the Locale.US format. */
+@Composable
 private fun dayNavShortLabel(selectedOffset: Int, selectedDay: LocalDate): String = when (selectedOffset) {
-    0 -> "Today"
-    1 -> "Yesterday"
+    0 -> stringResource(R.string.today_today)
+    1 -> stringResource(R.string.today_yesterday)
     else -> selectedDay.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.US))
 }
 
@@ -1301,6 +1347,9 @@ private fun TodayTopBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // LEFT — the tappable large title ("Today ⌄") over the full date. Taps open the date picker.
+        // Hoisted ahead of the clickable/semantics lambdas (stringResource is @Composable-only).
+        val changeDayLabel = stringResource(R.string.today_change_day_label)
+        val changeDayCd = stringResource(R.string.today_change_day_cd, dayLabel)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -1308,10 +1357,10 @@ private fun TodayTopBar(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClickLabel = "Change day",
+                    onClickLabel = changeDayLabel,
                     onClick = { showPicker = true },
                 )
-                .semantics { contentDescription = "$dayLabel. Change day" },
+                .semantics { contentDescription = changeDayCd },
             verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -1356,6 +1405,7 @@ private fun TodayTopBar(
             // Quick-add (+) — the accented gold primary, same 36dp as the rest.
             QuickActionDisc(onClick = onQuickActions)
             // Menu / settings avatar — the loop mark when no photo, same 36dp.
+            val menuSettingsCd = stringResource(R.string.today_menu_and_settings_cd)
             Box(
                 modifier = Modifier
                     .size(Metrics.iconButton)
@@ -1365,7 +1415,7 @@ private fun TodayTopBar(
                         indication = null,
                         onClick = onOpenSettings,
                     )
-                    .semantics { contentDescription = "Menu and settings" },
+                    .semantics { contentDescription = menuSettingsCd },
                 contentAlignment = Alignment.Center,
             ) {
                 ProfileAvatar(size = Metrics.iconButton)
@@ -1385,6 +1435,7 @@ private fun RecordingStatusLight(state: RecordingState, onClick: () -> Unit) {
         RecordingState.NotRecording -> Palette.statusCritical
         RecordingState.HistoryExperimental -> Palette.accent
     }
+    val stateCd = "${recordingStateTitle(state)}. ${recordingStateDetail(state)}"
     Box(
         modifier = Modifier
             .size(Metrics.iconButton)
@@ -1395,7 +1446,7 @@ private fun RecordingStatusLight(state: RecordingState, onClick: () -> Unit) {
                 indication = null,
                 onClick = onClick,
             )
-            .semantics { contentDescription = "${state.title}. ${state.detail}" },
+            .semantics { contentDescription = stateCd },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -1411,6 +1462,7 @@ private fun RecordingStatusLight(state: RecordingState, onClick: () -> Unit) {
  *  The whole card is the tap target. Lives near the donation nudge in the Today flow. */
 @Composable
 private fun SupportRow(onSupport: () -> Unit) {
+    val supportCd = stringResource(R.string.today_cd_support_noop_donate_or_get)
     NoopCard(
         modifier = Modifier
             .clip(RoundedCornerShape(Metrics.cardRadius))
@@ -1419,7 +1471,7 @@ private fun SupportRow(onSupport: () -> Unit) {
                 indication = null,
                 onClick = onSupport,
             )
-            .semantics { contentDescription = "Support NOOP — donate or get in touch" },
+            .semantics { contentDescription = supportCd },
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1435,9 +1487,9 @@ private fun SupportRow(onSupport: () -> Unit) {
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space4),
             ) {
-                Text("Support NOOP", style = NoopType.headline, color = Palette.textPrimary)
+                Text(stringResource(R.string.today_support_noop_cd), style = NoopType.headline, color = Palette.textPrimary)
                 Text(
-                    "Donate or get in touch — totally optional.",
+                    stringResource(R.string.today_donate_or_get_in_touch),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
@@ -1591,6 +1643,9 @@ private fun HeroRingColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ring()
+        // DISPLAY label for the world — DomainTheme.label stays canonical en-US (it's the world's logic
+        // name); the rendered + uppercased label and the CD route through the localized score names.
+        val domainLabel = domainThemeLabel(domain)
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
@@ -1599,10 +1654,10 @@ private fun HeroRingColumn(
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(domain.label.uppercase(), style = NoopType.overline, color = Palette.textSecondary)
+            Text(domainLabel.uppercase(), style = NoopType.overline, color = Palette.textSecondary)
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "How ${domain.label} is calculated",
+                contentDescription = stringResource(R.string.today_how_score_is_calculated, domainLabel),
                 tint = Palette.textSecondary.copy(alpha = 0.6f),
                 modifier = Modifier.size(14.dp),
             )
@@ -1610,10 +1665,11 @@ private fun HeroRingColumn(
         // COMPONENT 4 — the real per-metric merge winner under this ring (only when resolved + the ring
         // has a value). Tinted to the source's badge hue, matching the Data Sources footer + iOS.
         if (provenance != null) {
+            val sourceCd = stringResource(R.string.today_source_cd, provenance)
             SourceBadge(
                 provenance,
                 tint = provenanceLabelTint(provenance),
-                modifier = Modifier.semantics { contentDescription = "Source: $provenance" },
+                modifier = Modifier.semantics { contentDescription = sourceCd },
             )
         }
     }
@@ -1663,21 +1719,25 @@ private fun SynthesisHeroCard(
             // honestly still CALIBRATING for today, matching the iOS pill (keyed on displayDay.recovery).
             val todayRecovery = day?.recovery
             StatePill(
-                title = if (todayRecovery != null) "SOLID" else "CALIBRATING",
+                title = if (todayRecovery != null) {
+                    stringResource(R.string.today_pill_solid)
+                } else {
+                    stringResource(R.string.today_pill_calibrating)
+                },
                 tone = if (todayRecovery != null) StrandTone.Accent else StrandTone.Neutral,
             )
         }
         InsightCard(
             modifier = Modifier.fillMaxWidth(),
-            category = "Synthesis",
-            status = if (recoveryCalibration != null) "Calibrating" else synthesisWord(recovery),
+            category = stringResource(R.string.today_synthesis_title),
+            status = if (recoveryCalibration != null) stringResource(R.string.today_synthesis_calibrating_status) else synthesisWord(recovery),
             detail = if (recoveryCalibration != null) {
                 // Comma (not the old em-dash) to match the Swift canonical synthesis copy VERBATIM
                 // (TodayView "Learning your baseline, N of M nights.") and the no-em-dash standing rule.
-                "Learning your baseline, $recoveryCalibration of ${Baselines.minNightsSeed} nights."
+                stringResource(R.string.today_learning_baseline_comma, recoveryCalibration, Baselines.minNightsSeed)
             } else if (carriedDay != null) {
                 // Carried prior-day read — summarise that day + stamp it so it isn't passed off as today's.
-                synthesisDetail(carriedDay) + " Last night · ${lastChargeDateLabel(carriedDay.day)}."
+                synthesisDetail(carriedDay) + " " + stringResource(R.string.today_last_night_with_dot, lastChargeDateLabel(carriedDay.day))
             } else {
                 synthesisDetail(day)
             },
@@ -1711,9 +1771,9 @@ private fun RingEmptyOverlay(
 ) {
     if (calibratingNights != null) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Calibrating", style = NoopType.headline, color = Palette.textTertiary, maxLines = 1)
+            Text(stringResource(R.string.today_calibrating), style = NoopType.headline, color = Palette.textTertiary, maxLines = 1)
             Text(
-                "$calibratingNights of ${Baselines.minNightsSeed}",
+                stringResource(R.string.today_calibrating_count, calibratingNights, Baselines.minNightsSeed),
                 style = NoopType.footnote,
                 color = Palette.textSecondary,
                 maxLines = 1,
@@ -1725,7 +1785,7 @@ private fun RingEmptyOverlay(
             // SAME size + weight as a filled ring's number (glowRingCenterTextStyle), so a carried Charge, a
             // clean value and "No Data" share one centre-number style. Its caption stays a footnote.
             Text(
-                "${lastScoredCharge.value.roundToInt()}%",
+                stringResource(R.string.today_charge_pct, lastScoredCharge.value.roundToInt()),
                 style = glowRingCenterTextStyle(diameter, Palette.recoveryColor(lastScoredCharge.value)),
                 maxLines = 1,
             )
@@ -1743,7 +1803,8 @@ private fun RingEmptyOverlay(
 
 @Composable
 private fun RingNoData() {
-    Text(NO_DATA, style = NoopType.headline, color = Palette.textTertiary, maxLines = 1)
+    // NO_DATA stays the canonical logic sentinel (value != NO_DATA comparisons); render its localized text.
+    Text(stringResource(R.string.today_no_data), style = NoopType.headline, color = Palette.textTertiary, maxLines = 1)
 }
 
 // MARK: - Hero vitals metric rows — HRV / Resting HR / Respiratory, re-homed below the ring hero
@@ -1767,35 +1828,37 @@ private fun HeroMetricRows(day: DailyMetric?, carriedDay: DailyMetric? = null) {
         Column(modifier = Modifier.fillMaxWidth()) {
             HeroMetricRow(
                 icon = Icons.Filled.Favorite,
-                label = "HRV",
+                label = stringResource(R.string.today_hrv),
                 value = vd?.avgHrv?.let { it.roundToInt().toString() } ?: NO_DATA,
-                unit = "ms",
+                unit = stringResource(R.string.today_unit_ms),
                 hue = Palette.metricCyan,
             )
             HeroMetricDivider()
             HeroMetricRow(
                 icon = Icons.Filled.MonitorHeart,
-                label = "Resting HR",
+                label = stringResource(R.string.today_resting_hr),
                 value = vd?.restingHr?.toString() ?: NO_DATA,
-                unit = "bpm",
+                unit = stringResource(R.string.today_unit_bpm),
                 hue = Palette.metricRose,
             )
             HeroMetricDivider()
             HeroMetricRow(
                 icon = Icons.Filled.Air,
-                label = "Respiratory",
+                label = stringResource(R.string.today_respiratory),
                 value = vd?.respRateBpm?.let { String.format(Locale.US, "%.1f", it) } ?: NO_DATA,
-                unit = "rpm",
+                unit = stringResource(R.string.today_unit_rpm),
                 hue = Palette.sleepLight,
             )
             // ONE provenance footnote when these are carried prior-day vitals — matching the carried Charge
             // ring's "Last night · <date>" stamp so the whole recovery side is labelled as a prior read.
             if (carriedDay != null) {
+                val carriedDateLabel = lastChargeDateLabel(carriedDay.day)
+                val vitalsCarriedCd = stringResource(R.string.today_vitals_from_last_night_cd, carriedDateLabel)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Metrics.space14, vertical = Metrics.space12)
-                        .semantics { contentDescription = "These vitals are from last night ${lastChargeDateLabel(carriedDay.day)}" },
+                        .semantics { contentDescription = vitalsCarriedCd },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -1806,7 +1869,7 @@ private fun HeroMetricRows(day: DailyMetric?, carriedDay: DailyMetric? = null) {
                         modifier = Modifier.size(13.dp),
                     )
                     Text(
-                        "Last night · ${lastChargeDateLabel(carriedDay.day)}",
+                        stringResource(R.string.today_last_night_caption, carriedDateLabel),
                         style = NoopType.footnote,
                         color = Palette.textTertiary,
                     )
@@ -1819,18 +1882,22 @@ private fun HeroMetricRows(day: DailyMetric?, carriedDay: DailyMetric? = null) {
 @Composable
 private fun HeroMetricRow(icon: ImageVector, label: String, value: String, unit: String, hue: Color) {
     val hasValue = value != NO_DATA
+    // Render the localized "No Data" word when the value is the sentinel (the comparison above stays on the
+    // canonical NO_DATA const). The CD reads "<label> <value> <unit>".
+    val displayValue = if (hasValue) value else stringResource(R.string.today_no_data)
+    val rowCd = stringResource(R.string.today_metric_value_unit_cd, label, displayValue, unit)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Metrics.space14, vertical = Metrics.space12)
-            .semantics { contentDescription = "$label $value $unit" },
+            .semantics { contentDescription = rowCd },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(17.dp))
         Spacer(Modifier.width(Metrics.space12))
         Text(label, style = NoopType.subhead, color = Palette.textSecondary, modifier = Modifier.weight(1f))
         Text(
-            value,
+            displayValue,
             style = NoopType.bodyNumber,
             color = if (hasValue) Palette.textPrimary else Palette.textTertiary,
         )
@@ -1878,12 +1945,13 @@ private fun YourCardsSection(
     Box(modifier = Modifier.fillMaxWidth().staggeredAppear(2)) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             // Header: "YOUR CARDS" overline + a right-aligned blue CUSTOMISE action (the WHOOP ✎ affordance).
+            val customiseCd = stringResource(R.string.today_customise_cards_cd)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Overline("Your cards", modifier = Modifier.weight(1f))
+                Overline(stringResource(R.string.today_your_cards), modifier = Modifier.weight(1f))
                 TextButton(
                     onClick = onCustomise,
                     colors = ButtonDefaults.textButtonColors(contentColor = Palette.accent),
-                    modifier = Modifier.semantics { contentDescription = "Customise your cards" },
+                    modifier = Modifier.semantics { contentDescription = customiseCd },
                 ) {
                     Icon(
                         Icons.Filled.Tune,
@@ -1892,7 +1960,7 @@ private fun YourCardsSection(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "CUSTOMISE",
+                        stringResource(R.string.today_customise),
                         style = NoopType.overline.copy(letterSpacing = 0.4.sp),
                         color = Palette.accent,
                     )
@@ -1922,6 +1990,9 @@ private fun YourCardsSection(
         }
     }
 }
+
+// DashboardCard titles/subtitles localize via the enum's @StringRes titleRes / subtitleRes at the render
+// site (see DashboardCards.kt) — no separate resolver needed.
 
 /** A dashboard card's WHOOP-token tint (icon + accent). Score cards take their domain colour; vitals take
  *  their biometric hue; everything else the blue accent. No gold (WHOOP), tokens only. Mirrors iOS
@@ -2023,6 +2094,11 @@ private fun DashboardCardRow(
     onClick: (() -> Unit)? = null,
 ) {
     val hasValue = value != NO_DATA
+    // Localized card title/subtitle (DISPLAY) + the localized "No Data" word for the sentinel value.
+    val cardTitle = stringResource(card.titleRes)
+    val cardSubtitle = stringResource(card.subtitleRes)
+    val displayValue = if (hasValue) value else stringResource(R.string.today_no_data)
+    val cardCd = stringResource(R.string.today_card_value_cd, cardTitle, displayValue)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2030,7 +2106,7 @@ private fun DashboardCardRow(
             .frostedCardSurface(cornerRadius = Metrics.cardRadius)
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .padding(horizontal = 13.dp, vertical = 11.dp)
-            .semantics { contentDescription = "${card.title}: $value" },
+            .semantics { contentDescription = cardCd },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -2048,14 +2124,14 @@ private fun DashboardCardRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                card.title.uppercase(),
+                cardTitle.uppercase(),
                 style = NoopType.overline.copy(letterSpacing = 0.4.sp),
                 color = Palette.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                card.subtitle,
+                cardSubtitle,
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
                 maxLines = 1,
@@ -2063,7 +2139,7 @@ private fun DashboardCardRow(
             )
         }
         Text(
-            value,
+            displayValue,
             style = NoopType.title2.copy(fontWeight = FontWeight.SemiBold),
             color = if (hasValue) Palette.textPrimary else Palette.textTertiary,
             maxLines = 1,
@@ -2124,10 +2200,9 @@ private fun DashboardCardsEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("My Dashboard", style = NoopType.title2, color = Palette.textPrimary)
+                    Text(stringResource(R.string.today_my_dashboard), style = NoopType.title2, color = Palette.textPrimary)
                     Text(
-                        "Choose which cards show on Today and reorder them with the arrows. " +
-                            "Cards with no value yet show a dash.",
+                        stringResource(R.string.today_dashboard_editor_subtitle),
                         style = NoopType.subhead,
                         color = Palette.textSecondary,
                     )
@@ -2139,10 +2214,13 @@ private fun DashboardCardsEditorDialog(
                         .verticalScroll(rememberScrollState()),
                 ) {
                     items.forEachIndexed { index, item ->
+                        // Localized DISPLAY label for this card; the editor still saves the canonical enum.
+                        val cardLabel = stringResource(item.card.titleRes)
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            val showCd = stringResource(R.string.today_editor_show_cd, cardLabel)
                             Switch(
                                 checked = item.enabled,
                                 onCheckedChange = { items[index] = item.copy(enabled = it) },
@@ -2153,11 +2231,11 @@ private fun DashboardCardsEditorDialog(
                                     uncheckedTrackColor = Palette.surfaceInset,
                                     uncheckedBorderColor = Palette.hairline,
                                 ),
-                                modifier = Modifier.semantics { contentDescription = "Show ${item.card.title}" },
+                                modifier = Modifier.semantics { contentDescription = showCd },
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                item.card.title,
+                                cardLabel,
                                 style = NoopType.body,
                                 color = if (item.enabled) Palette.textPrimary else Palette.textTertiary,
                                 modifier = Modifier.weight(1f),
@@ -2169,7 +2247,7 @@ private fun DashboardCardsEditorDialog(
                             ) {
                                 Icon(
                                     Icons.Filled.KeyboardArrowUp,
-                                    contentDescription = "Move ${item.card.title} up",
+                                    contentDescription = stringResource(R.string.today_editor_move_up_cd, cardLabel),
                                     tint = if (index > 0) Palette.textSecondary else Palette.textTertiary,
                                     modifier = Modifier.size(Metrics.iconSmall),
                                 )
@@ -2181,7 +2259,7 @@ private fun DashboardCardsEditorDialog(
                             ) {
                                 Icon(
                                     Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = "Move ${item.card.title} down",
+                                    contentDescription = stringResource(R.string.today_editor_move_down_cd, cardLabel),
                                     tint = if (index < items.lastIndex) Palette.textSecondary else Palette.textTertiary,
                                     modifier = Modifier.size(Metrics.iconSmall),
                                 )
@@ -2204,7 +2282,7 @@ private fun DashboardCardsEditorDialog(
                                 .forEach { items.add(EditableDashboardCard(it, false)) }
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Palette.textSecondary),
-                    ) { Text("Reset", style = NoopType.body) }
+                    ) { Text(stringResource(R.string.today_reset), style = NoopType.body) }
                     Spacer(Modifier.weight(1f))
                     Button(
                         onClick = { onSave(items.filter { it.enabled }.map { it.card }) },
@@ -2214,7 +2292,7 @@ private fun DashboardCardsEditorDialog(
                             containerColor = Palette.accent,
                             contentColor = Palette.surfaceBase,
                         ),
-                    ) { Text("Done", style = NoopType.captionNumber) }
+                    ) { Text(stringResource(R.string.today_done), style = NoopType.captionNumber) }
                 }
             }
         }
@@ -2245,42 +2323,48 @@ private fun RecoveryContributorsSection(day: DailyMetric?, carriedDay: DailyMetr
     val resp = cd?.respRateBpm
     if (hrv == null && rhr == null && sleepMin == null && resp == null) return
 
-    val overline = carriedDay?.let { "Recovery · Last night · ${lastChargeDateLabel(it.day)}" } ?: "Recovery"
-    SectionHeader("Contributors", overline = overline, trailing = "What drove Charge")
+    val overline = carriedDay?.let {
+        stringResource(R.string.today_recovery_last_night_overline, lastChargeDateLabel(it.day))
+    } ?: stringResource(R.string.today_recovery)
+    val noData = stringResource(R.string.today_no_data)
+    SectionHeader(
+        stringResource(R.string.today_contributors),
+        overline = overline,
+        trailing = stringResource(R.string.today_what_drove_charge),
+    )
     NoopCard {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space16)) {
             // HRV — higher is better; map a typical 20–120 ms span. Teal (its biometric hue; iOS metricCyan).
             ContributorBar(
-                label = "HRV",
-                readout = hrv?.let { "${it.roundToInt()} ms" } ?: NO_DATA,
+                label = stringResource(R.string.today_hrv),
+                readout = hrv?.let { stringResource(R.string.today_contributor_ms, it.roundToInt()) } ?: noData,
                 fraction = hrv?.let { ((it - 20.0) / 100.0) },
                 color = Palette.metricCyan,
             )
             // Resting HR — lower is better, so invert a typical 40–80 bpm span. Charge/recovery world (iOS
             // chargeColor — the recovery contributor reads on the WHOOP-green Charge world, not gold).
             ContributorBar(
-                label = "Resting HR",
-                readout = rhr?.let { "${it.roundToInt()} bpm" } ?: NO_DATA,
+                label = stringResource(R.string.today_resting_hr),
+                readout = rhr?.let { stringResource(R.string.today_contributor_bpm, it.roundToInt()) } ?: noData,
                 fraction = rhr?.let { 1.0 - ((it - 40.0) / 40.0) },
                 color = Palette.chargeColor,
             )
             // Sleep — hours in bed against an 8h target. Blue (sleep world).
             ContributorBar(
-                label = "Sleep",
-                readout = sleepMin?.let { sleepValue(cd) } ?: NO_DATA,
+                label = stringResource(R.string.today_sleep),
+                readout = sleepMin?.let { sleepValue(cd) } ?: noData,
                 fraction = sleepMin?.let { (it / 60.0) / 8.0 },
                 color = Palette.sleepLight,
             )
             // Respiratory — stability around a typical 12–20 rpm span. Deep blue (sleep world).
             ContributorBar(
-                label = "Respiratory",
-                readout = resp?.let { String.format(Locale.US, "%.1f rpm", it) } ?: NO_DATA,
+                label = stringResource(R.string.today_respiratory),
+                readout = resp?.let { stringResource(R.string.today_contributor_rpm, it) } ?: noData,
                 fraction = resp?.let { 1.0 - ((it - 12.0) / 8.0) },
                 color = Palette.sleepDeep,
             )
             Text(
-                "Baselines learned on-device over 14 days. Bars are an approximate read of each " +
-                    "signal against a typical adult range — not medical advice.",
+                stringResource(R.string.today_contributors_footnote),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
             )
@@ -2293,6 +2377,7 @@ private fun RecoveryContributorsSection(day: DailyMetric?, carriedDay: DailyMetr
 @Composable
 private fun ContributorBar(label: String, readout: String, fraction: Double?, color: Color) {
     val fillFrac = fraction?.coerceIn(0.0, 1.0)?.toFloat() ?: 0f
+    val barCd = stringResource(R.string.today_contributor_value_unit_cd, label, readout)
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space6)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Overline(label, modifier = Modifier.weight(1f))
@@ -2304,7 +2389,7 @@ private fun ContributorBar(label: String, readout: String, fraction: Double?, co
                 .height(Metrics.progressHeight)
                 .clip(RoundedCornerShape(Metrics.cornerPill))
                 .background(Palette.surfaceInset)
-                .semantics { contentDescription = "$label $readout" }
+                .semantics { contentDescription = barCd }
                 .drawBehind { if (fillFrac > 0f) drawContributorFill(color, fillFrac) },
         )
     }
@@ -2434,6 +2519,34 @@ sealed class ScoreState {
 }
 
 /**
+ * @Composable DISPLAY resolver for a [ScoreState]'s status title. The [ScoreState.title] getter stays
+ * canonical en-US (logic/test oracle); this routes the RENDERED title through the localized score-state
+ * strings, the producer-vs-display split the i18n uses. [ScoreState.Scored] has no own title.
+ */
+@Composable
+private fun scoreStateTitle(state: ScoreState): String = when (state) {
+    is ScoreState.Scored -> ""
+    is ScoreState.Calibrating -> stringResource(R.string.today_synthesis_calibrating_status)
+    is ScoreState.CarriedLastNight -> stringResource(R.string.today_state_last_night, state.dateLabel)
+    ScoreState.NeedsStrap -> stringResource(R.string.today_state_needs_strap)
+}
+
+/** @Composable DISPLAY resolver for a [ScoreState]'s one-line detail (see [scoreStateTitle]). The
+ *  night(s) plural in the calibrating copy follows nightsRemaining. */
+@Composable
+private fun scoreStateDetail(state: ScoreState): String = when (state) {
+    is ScoreState.Scored -> ""
+    is ScoreState.Calibrating -> {
+        val nights = stringResource(
+            if (state.nightsRemaining == 1) R.string.today_night_singular else R.string.today_night_plural,
+        )
+        stringResource(R.string.today_state_calibrating_detail, state.nightsRemaining, nights)
+    }
+    is ScoreState.CarriedLastNight -> stringResource(R.string.today_state_carried_detail)
+    ScoreState.NeedsStrap -> stringResource(R.string.today_state_needs_strap_detail)
+}
+
+/**
  * Resolve the honest [ScoreState] for the Today score side from the same signals the tiles already use,
  * so the explainer is the EXACT truth on screen (never a separate guess). Pure + unit-tested. Order of
  * precedence mirrors the tile waterfall:
@@ -2474,11 +2587,14 @@ private fun ScoreStateNote(state: ScoreState) {
         ScoreState.NeedsStrap -> Palette.statusWarning
         else -> Palette.textTertiary
     }
+    val title = scoreStateTitle(state)
+    val detail = scoreStateDetail(state)
+    val stateCd = "$title. $detail"
     NoopCard {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "${state.title}. ${state.detail}" },
+                .semantics { contentDescription = stateCd },
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top,
         ) {
@@ -2491,8 +2607,8 @@ private fun ScoreStateNote(state: ScoreState) {
                     .size(Metrics.iconSmall),
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(state.title, style = NoopType.headline, color = Palette.textPrimary)
-                Text(state.detail, style = NoopType.subhead, color = Palette.textSecondary)
+                Text(title, style = NoopType.headline, color = Palette.textPrimary)
+                Text(detail, style = NoopType.subhead, color = Palette.textSecondary)
             }
         }
     }
@@ -2551,6 +2667,28 @@ sealed class RecordingState {
 }
 
 /**
+ * @Composable DISPLAY resolver for a [RecordingState]'s status word. The [RecordingState.title] getter
+ * stays canonical en-US (logic/test oracle); this routes the RENDERED word through the localized recording
+ * strings, the producer-vs-display split the i18n uses. The "Xm ago" minutes follow [LastSynced.minutesAgo].
+ */
+@Composable
+private fun recordingStateTitle(state: RecordingState): String = when (state) {
+    RecordingState.Recording -> stringResource(R.string.today_recording_recording)
+    is RecordingState.LastSynced -> stringResource(R.string.today_recording_last_synced, state.minutesAgo)
+    RecordingState.NotRecording -> stringResource(R.string.today_recording_not_recording)
+    RecordingState.HistoryExperimental -> stringResource(R.string.today_recording_connected)
+}
+
+/** @Composable DISPLAY resolver for a [RecordingState]'s one-line detail (see [recordingStateTitle]). */
+@Composable
+private fun recordingStateDetail(state: RecordingState): String = when (state) {
+    RecordingState.Recording -> stringResource(R.string.today_recording_recording_detail)
+    is RecordingState.LastSynced -> stringResource(R.string.today_recording_last_synced_detail)
+    RecordingState.NotRecording -> stringResource(R.string.today_recording_not_recording_detail)
+    RecordingState.HistoryExperimental -> stringResource(R.string.today_recording_connected_detail)
+}
+
+/**
  * Resolve the honest [RecordingState] from the live BLE state + last-sync timestamp. Pure + unit-tested.
  *   - connected AND a live HR is streaming  → [RecordingState.Recording] (it really is saving data);
  *   - else a [lastSyncAtSec] this session    → [RecordingState.LastSynced] (minutes since, clamped >= 0,
@@ -2583,6 +2721,9 @@ internal fun recordingStateFor(
 @Composable
 private fun RecordingStatusChip(state: RecordingState, onConnect: () -> Unit) {
     val clickable = state is RecordingState.NotRecording || state is RecordingState.LastSynced
+    val title = recordingStateTitle(state)
+    val detail = recordingStateDetail(state)
+    val chipCd = "$title. $detail"
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2597,18 +2738,18 @@ private fun RecordingStatusChip(state: RecordingState, onConnect: () -> Unit) {
                     Modifier
                 },
             )
-            .semantics { contentDescription = "${state.title}. ${state.detail}" },
+            .semantics { contentDescription = chipCd },
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatePill(
-            title = state.title,
+            title = title,
             tone = state.tone,
             showsDot = true,
             pulsing = state is RecordingState.Recording,
         )
         Text(
-            state.detail,
+            detail,
             style = NoopType.footnote,
             color = Palette.textTertiary,
             modifier = Modifier.weight(1f),
@@ -2685,6 +2826,45 @@ internal fun provenanceLabelTint(label: String): Color = when (label) {
 // `provenanceBadgeLabel` By-Day mappers are kept (Intelligence/Trends + tests still use that vocabulary).
 
 /**
+ * @Composable DISPLAY resolver for the [buildingHint] cold-start caption. [buildingHint] stays the
+ * canonical en-US oracle (TodayMetricTilesTest asserts its exact copy); this maps the same today-only
+ * REST/EFFORT/CHARGE/BLOOD_OXYGEN/STEPS cases onto the localized building-hint strings, returning null for
+ * a past day / a metric with no honest cold-start copy — mirroring [buildingHint]'s own null contract.
+ */
+@Composable
+private fun buildingHintText(metric: KeyMetric, isToday: Boolean): String? {
+    if (!isToday) return null
+    return when (metric) {
+        KeyMetric.REST -> stringResource(R.string.today_building_wear_tonight)
+        KeyMetric.EFFORT -> stringResource(R.string.today_building_moves)
+        KeyMetric.CHARGE -> stringResource(R.string.today_building_wear_tonight)
+        KeyMetric.BLOOD_OXYGEN -> stringResource(R.string.today_building_wear_tonight)
+        KeyMetric.STEPS -> stringResource(R.string.today_building_moves)
+        else -> null
+    }
+}
+
+/** @Composable DISPLAY resolver for the Rest tile caption. [restCaption] stays the canonical en-US oracle
+ *  (its hours-in-bed / efficiency split is unit-tested); only the "% eff" wording is localized here, the
+ *  duration ("Hh Mm") is a number format and passes through unchanged. Null when [restCaption] is null. */
+@Composable
+private fun restCaptionText(d: DailyMetric?): String? = when {
+    d?.totalSleepMin != null -> sleepValue(d)
+    d?.efficiency != null -> stringResource(R.string.today_rest_efficiency, String.format(Locale.US, "%.0f", d.efficiency))
+    else -> null
+}
+
+/** @Composable DISPLAY resolver for the [weightTile] caption. [weightTile] stays the canonical en-US oracle
+ *  ("latest" / "from profile" are asserted in TodayMetricTilesTest); this maps those two captions onto the
+ *  localized strings at the render site, leaving the English values as the canonical fallback. */
+@Composable
+private fun weightCaptionText(caption: String?): String? = when (caption) {
+    "latest" -> stringResource(R.string.today_weight_latest)
+    "from profile" -> stringResource(R.string.today_weight_from_profile)
+    else -> caption
+}
+
+/**
  * The full 14-day metric grid, mirroring the macOS LazyVGrid order:
  * Charge, Effort, Rest, HRV, Resting HR, Blood Oxygen, Respiratory,
  * Steps, Weight, Calories. Each tile is a fixed-height [SparkStatTile] so the
@@ -2714,7 +2894,28 @@ private fun MetricGrid(
 ) {
     // The "Last night · <date>" caption carried recovery-vital tiles show in place of their unit when
     // they're showing the prior scored day's value (#543); null when not carrying. Mirrors iOS.
-    val carriedVitalCaption = carriedDay?.let { "Last night · ${lastChargeDateLabel(it.day)}" }
+    val carriedVitalCaption = carriedDay?.let { stringResource(R.string.today_last_night_caption, lastChargeDateLabel(it.day)) }
+    // The localized "No Data" word for every tile's empty fallback; NO_DATA stays the logic sentinel.
+    val noData = stringResource(R.string.today_no_data)
+    // Localized vital units + tile labels, hoisted once (stringResource is @Composable-only).
+    val unitMs = stringResource(R.string.today_unit_ms)
+    val unitBpm = stringResource(R.string.today_unit_bpm)
+    val unitRpm = stringResource(R.string.today_unit_rpm)
+    val unitSpo2 = stringResource(R.string.today_unit_spo2)
+    val calibratingCaption = stringResource(R.string.today_calibrating)
+    val stepsCaption = stringResource(R.string.today_steps_caption)
+    val stepsEstCaption = stringResource(R.string.today_steps_est_caption)
+    val caloriesCaption = stringResource(R.string.today_calories_caption)
+    val labelCharge = stringResource(R.string.today_charge)
+    val labelEffort = stringResource(R.string.today_effort)
+    val labelRest = stringResource(R.string.today_rest)
+    val labelHrv = stringResource(R.string.today_hrv)
+    val labelRestingHr = stringResource(R.string.today_resting_hr)
+    val labelBloodOxygen = stringResource(R.string.today_blood_oxygen)
+    val labelRespiratory = stringResource(R.string.today_respiratory)
+    val labelSteps = stringResource(R.string.today_steps)
+    val labelWeight = stringResource(R.string.today_weight)
+    val labelCalories = stringResource(R.string.today_calories)
     // One builder per tile, keyed by KeyMetric so the grid can be filtered + reordered per the saved
     // layout (#251). Each builder is byte-for-byte the tile that used to be hard-coded in the list — the
     // refactor only changes WHICH tiles render and in WHAT order, never how an individual tile looks.
@@ -2727,17 +2928,20 @@ private fun MetricGrid(
             // labelled as prior — it never fabricates a number for the new day. Mirrors iOS.
             SparkStatTile(
                 modifier = m,
-                label = "Charge",
-                value = d?.recovery?.let { "${it.roundToInt()}%" }
-                    ?: recoveryCalibration?.let { "$it/${Baselines.minNightsSeed}" }
-                    ?: lastScoredCharge?.let { "${it.value.roundToInt()}%" } ?: NO_DATA,
+                label = labelCharge,
+                value = d?.recovery?.let { stringResource(R.string.today_charge_pct, it.roundToInt()) }
+                    ?: recoveryCalibration?.let { stringResource(R.string.today_charge_n_of_m, it, Baselines.minNightsSeed) }
+                    ?: lastScoredCharge?.let { stringResource(R.string.today_charge_pct, it.value.roundToInt()) } ?: noData,
                 // H10: cold-start Charge — when there's no score, no "N of 4" calibration count and nothing
                 // carried, fall back to the honest "Building, wear it tonight" hint (today only) instead of
-                // a captionless "No Data". Past days stay bare (buildingHint returns null off-today).
+                // a captionless "No Data". Past days stay bare (buildingHint returns null off-today). The
+                // recovery-state word is routed through the localized recoveryStateLabel resolver, kept in
+                // the SAME Title-case the tile drew before (recoveryStateLabel yields UPPERCASE), so only the
+                // wording changes, not the casing/layout.
                 caption = d?.recovery?.let {
-                    Palette.recoveryState(it).lowercase().replaceFirstChar { c -> c.uppercase() }
-                } ?: recoveryCalibration?.let { "Calibrating" } ?: lastScoredCharge?.caption
-                    ?: buildingHint(KeyMetric.CHARGE, isToday),
+                    recoveryStateLabel(it).lowercase().replaceFirstChar { c -> c.uppercase() }
+                } ?: recoveryCalibration?.let { calibratingCaption } ?: lastScoredCharge?.caption
+                    ?: buildingHintText(KeyMetric.CHARGE, isToday),
                 accent = d?.recovery?.let { Palette.recoveryColor(it) }
                     ?: lastScoredCharge?.let { Palette.recoveryColor(it.value) } ?: Palette.textTertiary,
                 spark = w.recovery,
@@ -2749,10 +2953,10 @@ private fun MetricGrid(
             // user reads "coming" not "broken" (#527); a scored day keeps "of N", a past day stays bare.
             SparkStatTile(
                 modifier = m,
-                label = "Effort",
-                value = d?.strain?.let { UnitFormatter.effortDisplay(it, effortScale) } ?: NO_DATA,
-                caption = d?.strain?.let { "of ${UnitFormatter.effortScaleMax(effortScale)}" }
-                    ?: buildingHint(KeyMetric.EFFORT, isToday),
+                label = labelEffort,
+                value = d?.strain?.let { UnitFormatter.effortDisplay(it, effortScale) } ?: noData,
+                caption = d?.strain?.let { stringResource(R.string.today_effort_of, UnitFormatter.effortScaleMax(effortScale)) }
+                    ?: buildingHintText(KeyMetric.EFFORT, isToday),
                 accent = d?.strain?.let { Palette.effortTint(it / StrainScorer.maxStrain) } ?: Palette.textTertiary,
                 spark = w.strain,
                 sparkColor = Palette.strain066,
@@ -2767,18 +2971,18 @@ private fun MetricGrid(
             // stage figures read honestly. Only shown alongside a real score; never on a "building" tile.
             SparkStatTile(
                 modifier = m,
-                label = "Rest",
-                value = restScore?.let { "${it.roundToInt()}%" } ?: NO_DATA,
+                label = labelRest,
+                value = restScore?.let { stringResource(R.string.today_charge_pct, it.roundToInt()) } ?: noData,
                 // Scored → the sleep-duration caption. Unscored TODAY → the "building" hint. Unscored
                 // PAST day → keep the sleep caption (honest: missing score, not mid-calibration).
-                caption = if (restScore != null) restCaption(d)
-                          else buildingHint(KeyMetric.REST, isToday) ?: restCaption(d),
+                caption = if (restScore != null) restCaptionText(d)
+                          else buildingHintText(KeyMetric.REST, isToday) ?: restCaptionText(d),
                 accent = restScore?.let { Palette.recoveryColor(it) } ?: Palette.textTertiary,
                 // The Rest composite (0–100) trend, not raw sleep minutes — tracks the score above (#614).
                 spark = restSpark,
                 sparkColor = Palette.metricPurple,
                 onInfo = { onScoreInfo(ScoreSection.REST) },
-                badge = if (restScore != null && restStageLowConfidence(d)) "Estimated" else null,
+                badge = if (restScore != null && restStageLowConfidence(d)) stringResource(R.string.today_badge_estimated) else null,
             )
         },
         KeyMetric.HRV to { m ->
@@ -2788,9 +2992,9 @@ private fun MetricGrid(
             val carried = today ?: carriedDay?.avgHrv
             SparkStatTile(
                 modifier = m,
-                label = "HRV",
-                value = carried?.let { "${it.roundToInt()}" } ?: NO_DATA,
-                caption = if (today != null) "ms" else carried?.let { carriedVitalCaption },
+                label = labelHrv,
+                value = carried?.let { "${it.roundToInt()}" } ?: noData,
+                caption = if (today != null) unitMs else carried?.let { carriedVitalCaption },
                 accent = carried?.let { Palette.metricPurple } ?: Palette.textTertiary,
                 spark = w.hrv,
                 sparkColor = Palette.metricPurple,
@@ -2801,9 +3005,9 @@ private fun MetricGrid(
             val carried = today ?: carriedDay?.restingHr
             SparkStatTile(
                 modifier = m,
-                label = "Resting HR",
-                value = carried?.toString() ?: NO_DATA,
-                caption = if (today != null) "bpm" else carried?.let { carriedVitalCaption },
+                label = labelRestingHr,
+                value = carried?.toString() ?: noData,
+                caption = if (today != null) unitBpm else carried?.let { carriedVitalCaption },
                 accent = carried?.let { Palette.metricRose } ?: Palette.textTertiary,
                 spark = w.rhr,
                 sparkColor = Palette.metricRose,
@@ -2814,12 +3018,12 @@ private fun MetricGrid(
             val carried = today ?: carriedDay?.spo2Pct
             SparkStatTile(
                 modifier = m,
-                label = "Blood Oxygen",
-                value = carried?.let { String.format(Locale.US, "%.0f%%", it) } ?: NO_DATA,
+                label = labelBloodOxygen,
+                value = carried?.let { String.format(Locale.US, "%.0f%%", it) } ?: noData,
                 // H10: with no reading today and nothing carried, say the overnight SpO₂ is still building
                 // (today only) rather than a captionless "No Data". A carried night keeps its date stamp.
-                caption = if (today != null) "SpO₂" else (carried?.let { carriedVitalCaption }
-                    ?: buildingHint(KeyMetric.BLOOD_OXYGEN, isToday)),
+                caption = if (today != null) unitSpo2 else (carried?.let { carriedVitalCaption }
+                    ?: buildingHintText(KeyMetric.BLOOD_OXYGEN, isToday)),
                 accent = carried?.let { Palette.metricCyan } ?: Palette.textTertiary,
                 spark = w.spo2,
                 sparkColor = Palette.metricCyan,
@@ -2830,9 +3034,9 @@ private fun MetricGrid(
             val carried = today ?: carriedDay?.respRateBpm
             SparkStatTile(
                 modifier = m,
-                label = "Respiratory",
-                value = carried?.let { String.format(Locale.US, "%.1f", it) } ?: NO_DATA,
-                caption = if (today != null) "rpm" else carried?.let { carriedVitalCaption },
+                label = labelRespiratory,
+                value = carried?.let { String.format(Locale.US, "%.1f", it) } ?: noData,
+                caption = if (today != null) unitRpm else carried?.let { carriedVitalCaption },
                 accent = carried?.let { Palette.accent } ?: Palette.textTertiary,
                 spark = w.resp,
                 sparkColor = Palette.accent,
@@ -2849,15 +3053,15 @@ private fun MetricGrid(
             val steps = realSteps ?: estimatedStepsForDay
             SparkStatTile(
                 modifier = m,
-                label = "Steps",
-                value = steps?.let { intString(it.toDouble()) } ?: NO_DATA,
+                label = labelSteps,
+                value = steps?.let { intString(it.toDouble()) } ?: noData,
                 // An estimated day reads "est." so the number is never taken as a measured count. H10:
                 // with no count at all, say steps are still building today rather than a captionless
                 // "No Data" (today only; a past day with no steps stays a bare dash).
                 caption = when {
-                    realSteps != null -> "steps"
-                    estimatedStepsForDay != null -> "est."
-                    else -> buildingHint(KeyMetric.STEPS, isToday)
+                    realSteps != null -> stepsCaption
+                    estimatedStepsForDay != null -> stepsEstCaption
+                    else -> buildingHintText(KeyMetric.STEPS, isToday)
                 },
                 accent = steps?.let { Palette.metricCyan } ?: Palette.textTertiary,
                 spark = emptyList(),
@@ -2871,9 +3075,9 @@ private fun MetricGrid(
             val weight = weightTile(latestWeightKg, profileWeightKg, unitSystem)
             SparkStatTile(
                 modifier = m,
-                label = "Weight",
+                label = labelWeight,
                 value = weight.value,
-                caption = weight.caption,
+                caption = weightCaptionText(weight.caption),
                 accent = Palette.accent,
                 spark = emptyList(),
                 sparkColor = Palette.accent,
@@ -2884,9 +3088,9 @@ private fun MetricGrid(
             // .activeKcalEst). A heart-rate estimate, not cloud/clinical parity — shown rounded. (#107)
             SparkStatTile(
                 modifier = m,
-                label = "Calories",
-                value = d?.activeKcalEst?.let { "${intString(it)} kcal" } ?: NO_DATA,
-                caption = d?.activeKcalEst?.let { "active · est." },
+                label = labelCalories,
+                value = d?.activeKcalEst?.let { stringResource(R.string.today_calories_value, intString(it)) } ?: noData,
+                caption = d?.activeKcalEst?.let { caloriesCaption },
                 accent = d?.activeKcalEst?.let { Palette.metricAmber } ?: Palette.textTertiary,
                 spark = emptyList(),
                 sparkColor = Palette.metricAmber,
@@ -2988,22 +3192,22 @@ private fun HeartRateTrendCard(
     val avg = bpm.average().roundToInt()
 
     val selectedLabel = when (selectedDay) {
-        today -> "Today"
-        today.minusDays(1) -> "Yesterday"
+        today -> stringResource(R.string.today_today)
+        today.minusDays(1) -> stringResource(R.string.today_yesterday)
         else -> selectedDay.format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
     }
 
-    SectionHeader("Heart Rate", overline = selectedLabel)
+    SectionHeader(stringResource(R.string.today_heart_rate), overline = selectedLabel)
     NoopCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Header — mirrors the macOS ChartCard (title + subtitle, trailing read-out).
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Overline("Beats per minute")
+                    Overline(stringResource(R.string.today_beats_per_minute))
                     val subtitle = if (selectedDay == today) {
-                        "5-minute average | since midnight"
+                        stringResource(R.string.today_hr_subtitle_today)
                     } else {
-                        "5-minute average | selected day"
+                        stringResource(R.string.today_hr_subtitle_selected)
                     }
                     Text(
                         subtitle,
@@ -3011,7 +3215,7 @@ private fun HeartRateTrendCard(
                         color = Palette.textTertiary,
                     )
                 }
-                Text("$latest bpm", style = NoopType.chartValueLarge, color = Palette.metricRose)
+                Text(stringResource(R.string.today_hr_latest_bpm, latest), style = NoopType.chartValueLarge, color = Palette.metricRose)
             }
             // Chart with a max/avg/min Y-axis label column on the left and an HH:mm X-axis row below.
             // The line spaces points by index, but the X labels read each bucket's REAL timestamp in
@@ -3056,13 +3260,15 @@ private fun HeartRateTrendCard(
                     val b = buckets.getOrNull(idx) ?: buckets.last()
                     Instant.ofEpochSecond(b.bucket).atZone(zone).format(hhmm)
                 }
+                val nowLabel = stringResource(R.string.today_hr_now)
+                val startLabel = stringResource(R.string.today_hr_start)
                 val xLabels = if (buckets.size >= 3) {
                     listOf(
                         bucketToTime(0),
                         bucketToTime(buckets.size / 2),
-                        if (selectedDay == today) "Now" else bucketToTime(buckets.size - 1),
+                        if (selectedDay == today) nowLabel else bucketToTime(buckets.size - 1),
                     )
-                } else listOf("Start", "", "Now")
+                } else listOf(startLabel, "", nowLabel)
                 xLabels.forEach { lbl ->
                     Text(lbl, style = NoopType.footnote, color = Palette.textTertiary, modifier = Modifier.weight(1f))
                 }
@@ -3074,10 +3280,14 @@ private fun HeartRateTrendCard(
                     .background(Palette.hairline),
             )
             Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("Min" to min, "Avg" to avg, "Max" to max).forEach { (label, value) ->
+                listOf(
+                    stringResource(R.string.today_hr_min) to min,
+                    stringResource(R.string.today_hr_avg) to avg,
+                    stringResource(R.string.today_hr_max) to max,
+                ).forEach { (label, value) ->
                     Column(modifier = Modifier.weight(1f)) {
                         Overline(label, color = Palette.textTertiary)
-                        Text("$value bpm", style = NoopType.bodyNumber, color = Palette.textPrimary)
+                        Text(stringResource(R.string.today_hr_value_bpm, value), style = NoopType.bodyNumber, color = Palette.textPrimary)
                     }
                 }
             }
@@ -3166,14 +3376,26 @@ private fun OverviewHRChart(
     val effortX = strain?.let { if (n > 1) plotW else null }
 
     // One combined TalkBack description for the overlay layers, so the markers (which are otherwise
-    // small decorative pills) are announced. Only mentions the layers actually present.
-    val markerDescription = remember(sleep, recovery, strain, workouts, effortScale) {
+    // small decorative pills) are announced. Only mentions the layers actually present. Built off the
+    // main thread in a remember; the templates are resolved via the context's resources so the positional
+    // args are formatted properly (the remember itself isn't @Composable).
+    val context = LocalContext.current
+    val markerDescription = remember(context, sleep, recovery, strain, workouts, effortScale) {
         buildList {
-            add("24-hour heart rate")
-            if (sleep != null) add("sleep band ${hrHoursMinutes((sleep.endTs - sleep.effectiveStartTs).toInt())}")
-            if (recovery != null) add("${recovery.roundToInt()} percent Charge at wake")
-            if (strain != null) add("${UnitFormatter.effortDisplay(strain, effortScale)} Effort now")
-            if (workouts.isNotEmpty()) add("${workouts.size} workout${if (workouts.size == 1) "" else "s"} marked")
+            add(context.getString(R.string.today_marker_hr_24h))
+            if (sleep != null) {
+                add(context.getString(R.string.today_marker_sleep_band, hrHoursMinutes((sleep.endTs - sleep.effectiveStartTs).toInt())))
+            }
+            if (recovery != null) add(context.getString(R.string.today_marker_charge_at_wake, recovery.roundToInt()))
+            if (strain != null) add(context.getString(R.string.today_marker_effort_now, UnitFormatter.effortDisplay(strain, effortScale)))
+            if (workouts.isNotEmpty()) {
+                add(
+                    context.getString(
+                        if (workouts.size == 1) R.string.today_marker_workouts_one else R.string.today_marker_workouts_many,
+                        workouts.size,
+                    ),
+                )
+            }
         }.joinToString(", ")
     }
 
@@ -3265,14 +3487,14 @@ private fun OverviewHRChart(
             }
             if (chargeX != null && recovery != null) {
                 ChartMarkerPill(
-                    text = "${recovery.roundToInt()}% Charge",
+                    text = stringResource(R.string.today_marker_charge_pct, recovery.roundToInt()),
                     color = Palette.recoveryColor(recovery),
                     modifier = Modifier.markerOffset(chargeX, density, topPadDp),
                 )
             }
             if (effortX != null && strain != null) {
                 ChartMarkerPill(
-                    text = "${UnitFormatter.effortDisplay(strain, effortScale)} Effort",
+                    text = stringResource(R.string.today_marker_effort, UnitFormatter.effortDisplay(strain, effortScale)),
                     color = Palette.effortTint(strain / StrainScorer.maxStrain),
                     modifier = Modifier.markerOffset(plotW, density, topPadDp, alignEnd = true),
                 )
@@ -3392,7 +3614,11 @@ private data class TodayFooterState(
 private fun TodayWorkoutsSection(workouts: List<WorkoutRow>) {
     if (workouts.isEmpty()) return
 
-    SectionHeader("Last Workouts", overline = "Activity", trailing = "14 days")
+    SectionHeader(
+        stringResource(R.string.today_last_workouts),
+        overline = stringResource(R.string.today_activity),
+        trailing = stringResource(R.string.today_14_days),
+    )
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         workouts.take(4).chunked(2).forEach { rowWorkouts ->
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
@@ -3418,7 +3644,8 @@ private fun TodayWorkoutsSection(workouts: List<WorkoutRow>) {
 
 @Composable
 private fun TodaySourcesSection(footer: TodayFooterState, strapBatteryPct: Int? = null) {
-    SectionHeader("Data Sources", overline = "Provenance")
+    // Source badge names (Whoop / Apple Health / Health Connect) are brand/provenance values — verbatim.
+    SectionHeader(stringResource(R.string.today_data_sources), overline = stringResource(R.string.today_provenance))
     NoopCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SourceRow(
@@ -3427,7 +3654,7 @@ private fun TodaySourcesSection(footer: TodayFooterState, strapBatteryPct: Int? 
                 // A live battery reading means the strap IS connected, even before the first banked
                 // night — don't contradict it with "Not connected" (#159).
                 present = (footer.whoopDays ?: 0) > 0 || strapBatteryPct != null,
-                detail = countDetail(footer.whoopDays, footer.whoopWorkouts, "workouts"),
+                detail = countDetail(footer.whoopDays, footer.whoopWorkouts),
                 batteryPct = strapBatteryPct,
             )
             Box(
@@ -3440,7 +3667,7 @@ private fun TodaySourcesSection(footer: TodayFooterState, strapBatteryPct: Int? 
                 badge = "Apple Health",
                 tint = Palette.metricCyan,
                 present = (footer.appleDays ?: 0) > 0 || (footer.appleWorkouts ?: 0) > 0,
-                detail = countDetail(footer.appleDays, footer.appleWorkouts, "workouts"),
+                detail = countDetail(footer.appleDays, footer.appleWorkouts),
             )
             Box(
                 modifier = Modifier
@@ -3452,7 +3679,7 @@ private fun TodaySourcesSection(footer: TodayFooterState, strapBatteryPct: Int? 
                 badge = "Health Connect",
                 tint = Palette.metricPurple,
                 present = (footer.hcDays ?: 0) > 0 || (footer.hcWorkouts ?: 0) > 0,
-                detail = countDetail(footer.hcDays, footer.hcWorkouts, "workouts"),
+                detail = countDetail(footer.hcDays, footer.hcWorkouts),
             )
         }
     }
@@ -3476,7 +3703,7 @@ private fun SourceRow(
         }
         Spacer(Modifier.weight(1f))
         Text(
-            text = if (present) detail else "Not connected",
+            text = if (present) detail else stringResource(R.string.today_not_connected),
             style = NoopType.captionNumber,
             color = if (present) Palette.textSecondary else Palette.textTertiary,
             maxLines = 1,
@@ -3507,8 +3734,13 @@ private fun ReadinessSection(days: List<DailyMetric>, carriedDay: DailyMetric? =
     val readiness = remember(days, anchorKey) { ReadinessEngine.evaluate(days, today = anchorKey) }
     if (readiness.level == ReadinessEngine.Level.INSUFFICIENT) return
 
-    val overline = carriedDay?.let { "Last night · ${lastChargeDateLabel(it.day)}" } ?: "Should you push today?"
-    SectionHeader("Readiness", overline = overline)
+    // readiness.headline / summary / signals come from the analytics ReadinessEngine (canonical en-US
+    // oracle); the DISPLAY is localized via the readiness*Text/Label/Detail/Evidence resolvers below,
+    // re-derived from the structured level / signal.key / flag / acwr fields.
+    val overline = carriedDay?.let {
+        stringResource(R.string.today_last_night_caption, lastChargeDateLabel(it.day))
+    } ?: stringResource(R.string.today_readiness_overline)
+    SectionHeader(stringResource(R.string.today_readiness), overline = overline)
     NoopCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Headline row: level dot + headline, then the ACWR load read-out.
@@ -3521,23 +3753,23 @@ private fun ReadinessSection(days: List<DailyMetric>, carriedDay: DailyMetric? =
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    readiness.headline,
+                    readinessHeadlineText(readiness.level),
                     style = NoopType.headline,
                     color = Palette.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
                 readiness.acwr?.let { acwr ->
                     Text(
-                        "load ${String.format(Locale.US, "%.2f", acwr)}",
+                        stringResource(R.string.today_readiness_load, String.format(Locale.US, "%.2f", acwr)),
                         style = NoopType.captionNumber,
                         color = Palette.textTertiary,
                     )
                 }
             }
 
-            // Plain-English summary.
+            // Plain-language summary (localized from the level).
             Text(
-                readiness.summary,
+                readinessSummaryText(readiness.level),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -3561,7 +3793,7 @@ private fun ReadinessSection(days: List<DailyMetric>, carriedDay: DailyMetric? =
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            signal.label,
+                            readinessSignalLabel(signal.key),
                             style = NoopType.caption,
                             color = Palette.textSecondary,
                             modifier = Modifier.width(104.dp),
@@ -3571,13 +3803,13 @@ private fun ReadinessSection(days: List<DailyMetric>, carriedDay: DailyMetric? =
                             verticalArrangement = Arrangement.spacedBy(1.dp),
                         ) {
                             Text(
-                                signal.detail,
+                                readinessSignalDetail(signal, readiness.acwr),
                                 style = NoopType.caption,
                                 color = Palette.textTertiary,
                             )
                             // The numbers behind the read (e.g. "48 vs 55 ms"), as a small mono caption —
                             // mirrors the macOS readiness card and the "load X.XX" numeric readout above.
-                            signal.evidence?.let { evidence ->
+                            readinessSignalEvidence(signal)?.let { evidence ->
                                 Text(
                                     evidence,
                                     style = NoopType.captionNumber,
@@ -3590,6 +3822,74 @@ private fun ReadinessSection(days: List<DailyMetric>, carriedDay: DailyMetric? =
             }
         }
     }
+}
+
+// Readiness display resolvers — the ReadinessEngine output stays canonical en-US (Swift-parity oracle);
+// these re-derive the LOCALIZED card text from its structured fields (level / signal.key / flag / acwr).
+@Composable
+private fun readinessHeadlineText(level: ReadinessEngine.Level): String = when (level) {
+    ReadinessEngine.Level.PRIMED -> stringResource(R.string.readiness_headline_primed)
+    ReadinessEngine.Level.BALANCED -> stringResource(R.string.readiness_headline_balanced)
+    ReadinessEngine.Level.STRAINED -> stringResource(R.string.readiness_headline_strained)
+    ReadinessEngine.Level.RUNDOWN -> stringResource(R.string.readiness_headline_rundown)
+    ReadinessEngine.Level.INSUFFICIENT -> stringResource(R.string.today_readiness)
+}
+
+@Composable
+private fun readinessSummaryText(level: ReadinessEngine.Level): String = when (level) {
+    ReadinessEngine.Level.PRIMED -> stringResource(R.string.readiness_summary_primed)
+    ReadinessEngine.Level.BALANCED -> stringResource(R.string.readiness_summary_balanced)
+    ReadinessEngine.Level.STRAINED -> stringResource(R.string.readiness_summary_strained)
+    ReadinessEngine.Level.RUNDOWN -> stringResource(R.string.readiness_summary_rundown)
+    ReadinessEngine.Level.INSUFFICIENT -> ""
+}
+
+@Composable
+private fun readinessSignalLabel(key: String): String = when (key) {
+    "hrv" -> stringResource(R.string.readiness_label_hrv)
+    "rhr" -> stringResource(R.string.readiness_siglabel_rhr)
+    "respRate" -> stringResource(R.string.readiness_label_resp)
+    "acwr" -> stringResource(R.string.readiness_label_acwr)
+    "monotony" -> stringResource(R.string.readiness_label_monotony)
+    else -> key
+}
+
+@Composable
+private fun readinessSignalDetail(signal: ReadinessEngine.Signal, acwr: Double?): String = when (signal.key) {
+    "hrv" -> when (signal.flag) {
+        ReadinessEngine.Flag.GOOD -> stringResource(R.string.readiness_hrv_good)
+        ReadinessEngine.Flag.WATCH -> stringResource(R.string.readiness_hrv_watch)
+        ReadinessEngine.Flag.BAD -> stringResource(R.string.readiness_hrv_bad)
+        else -> stringResource(R.string.readiness_hrv_neutral)
+    }
+    "rhr" -> when (signal.flag) {
+        ReadinessEngine.Flag.GOOD -> stringResource(R.string.readiness_rhr_good)
+        ReadinessEngine.Flag.WATCH -> stringResource(R.string.readiness_rhr_watch)
+        ReadinessEngine.Flag.BAD -> stringResource(R.string.readiness_rhr_bad)
+        else -> stringResource(R.string.readiness_rhr_neutral)
+    }
+    "respRate" -> if (signal.flag == ReadinessEngine.Flag.BAD)
+        stringResource(R.string.readiness_resp_bad) else stringResource(R.string.readiness_resp_watch)
+    "acwr" -> {
+        val r = acwr ?: 0.0
+        val pct = String.format(Locale.getDefault(), "%.2f", r)
+        when {
+            r < 0.8 -> stringResource(R.string.readiness_acwr_rampdown, pct)
+            r < 1.3 -> stringResource(R.string.readiness_acwr_sweetspot, pct)
+            r < 1.5 -> stringResource(R.string.readiness_acwr_buildfast, pct)
+            else -> stringResource(R.string.readiness_acwr_spiking, pct)
+        }
+    }
+    "monotony" -> stringResource(R.string.readiness_monotony_watch)
+    else -> signal.detail
+}
+
+@Composable
+private fun readinessSignalEvidence(signal: ReadinessEngine.Signal): String? {
+    val raw = signal.evidence ?: return null
+    val worded = raw.replace("monotony", stringResource(R.string.readiness_evidence_monotony))
+    val sep = java.text.DecimalFormatSymbols.getInstance(Locale.getDefault()).decimalSeparator
+    return if (sep == '.') worded else worded.replace('.', sep)
 }
 
 /** Level → color, mirroring TodayView.readinessColor. */
@@ -3759,36 +4059,39 @@ private fun remember14(days: List<com.noop.data.DailyMetric>, anchorDay: LocalDa
 
 // MARK: - Derived text (ported from TodayView.swift)
 
+@Composable
 private fun greetingWord(): String {
     val h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
     return when {
-        h < 12 -> "Good morning"
-        h < 17 -> "Good afternoon"
-        else -> "Good evening"
+        h < 12 -> stringResource(R.string.today_greeting_morning)
+        h < 17 -> stringResource(R.string.today_greeting_afternoon)
+        else -> stringResource(R.string.today_greeting_evening)
     }
 }
 
+@Composable
 private fun synthesisWord(score: Double?): String {
-    if (score == null) return "No Data"
+    if (score == null) return stringResource(R.string.today_no_data)
     return when {
-        score < 25 -> "Depleted"
-        score < 50 -> "Low"
-        score < 70 -> "Steady"
-        score < 88 -> "Primed"
-        else -> "Peak"
+        score < 25 -> stringResource(R.string.today_synthesis_depleted)
+        score < 50 -> stringResource(R.string.today_synthesis_low)
+        score < 70 -> stringResource(R.string.today_synthesis_steady)
+        score < 88 -> stringResource(R.string.today_synthesis_primed)
+        else -> stringResource(R.string.today_synthesis_peak)
     }
 }
 
+@Composable
 private fun synthesisDetail(d: DailyMetric?): String {
     val rec = d?.recovery
-        ?: return "No metrics yet. Import your WHOOP export or wear the strap to begin."
+        ?: return stringResource(R.string.today_synthesis_no_metrics)
     val recPart = when {
-        rec < 50 -> "Charge is low"
-        rec < 70 -> "Charge is steady"
-        else -> "Charge is strong"
+        rec < 50 -> stringResource(R.string.today_synthesis_charge_low)
+        rec < 70 -> stringResource(R.string.today_synthesis_charge_steady)
+        else -> stringResource(R.string.today_synthesis_charge_strong)
     }
     val sleepPart = d.totalSleepMin?.let { mins ->
-        if (mins / 60.0 >= 7) " and sleep was consistent" else " but sleep ran short"
+        if (mins / 60.0 >= 7) stringResource(R.string.today_synthesis_sleep_consistent) else stringResource(R.string.today_synthesis_sleep_short)
     } ?: ""
     return "$recPart$sleepPart."
 }
@@ -3930,9 +4233,10 @@ private val workoutTimeFmt: DateTimeFormatter =
     DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
         .withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault())
 
-private fun countDetail(days: Int?, workouts: Int?, workoutLabel: String): String {
-    if (days == null || workouts == null) return "Counting..."
-    return "${grouped(days)} days · ${grouped(workouts)} $workoutLabel"
+@Composable
+private fun countDetail(days: Int?, workouts: Int?): String {
+    if (days == null || workouts == null) return stringResource(R.string.today_counting)
+    return stringResource(R.string.today_source_detail, grouped(days), grouped(workouts))
 }
 
 /** Same bands as the Settings Strap battery pill, so the % reads the same colour everywhere (#159). */
@@ -3978,6 +4282,27 @@ private fun grouped(value: Int): String =
 /** One editor row: a tile with its current enabled flag. The working list is rebuilt on each edit. */
 private data class EditableMetric(val metric: KeyMetric, val enabled: Boolean)
 
+/**
+ * @Composable DISPLAY resolver for a [KeyMetric]'s title. The [KeyMetric.title] getter stays canonical
+ * en-US (it backs persistence + tile keys); this routes only the RENDERED label through the localized
+ * metric strings — the same producer-vs-display split the i18n uses across Today.
+ */
+@Composable
+private fun keyMetricTitleText(metric: KeyMetric): String = stringResource(
+    when (metric) {
+        KeyMetric.CHARGE -> R.string.today_charge
+        KeyMetric.EFFORT -> R.string.today_effort
+        KeyMetric.REST -> R.string.today_rest
+        KeyMetric.HRV -> R.string.today_hrv
+        KeyMetric.RESTING_HR -> R.string.today_resting_hr
+        KeyMetric.BLOOD_OXYGEN -> R.string.today_blood_oxygen
+        KeyMetric.RESPIRATORY -> R.string.today_respiratory
+        KeyMetric.STEPS -> R.string.today_steps
+        KeyMetric.WEIGHT -> R.string.today_weight
+        KeyMetric.CALORIES -> R.string.today_calories
+    },
+)
+
 @Composable
 private fun KeyMetricsEditorDialog(
     initial: List<KeyMetric>,
@@ -4011,9 +4336,9 @@ private fun KeyMetricsEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Edit Key Metrics", style = NoopType.title2, color = Palette.textPrimary)
+                    Text(stringResource(R.string.today_edit_key_metrics), style = NoopType.title2, color = Palette.textPrimary)
                     Text(
-                        "Choose which tiles show on your Control Center and reorder them with the arrows.",
+                        stringResource(R.string.today_editor_subtitle),
                         style = NoopType.subhead,
                         color = Palette.textSecondary,
                     )
@@ -4025,10 +4350,13 @@ private fun KeyMetricsEditorDialog(
                         .verticalScroll(rememberScrollState()),
                 ) {
                     items.forEachIndexed { index, item ->
+                        // Localized DISPLAY label for the tile; the editor still saves the canonical enum.
+                        val metricLabel = keyMetricTitleText(item.metric)
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            val showCd = stringResource(R.string.today_editor_show_cd, metricLabel)
                             Switch(
                                 checked = item.enabled,
                                 onCheckedChange = { items[index] = item.copy(enabled = it) },
@@ -4039,11 +4367,11 @@ private fun KeyMetricsEditorDialog(
                                     uncheckedTrackColor = Palette.surfaceInset,
                                     uncheckedBorderColor = Palette.hairline,
                                 ),
-                                modifier = Modifier.semantics { contentDescription = "Show ${item.metric.title}" },
+                                modifier = Modifier.semantics { contentDescription = showCd },
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                item.metric.title,
+                                metricLabel,
                                 style = NoopType.body,
                                 color = if (item.enabled) Palette.textPrimary else Palette.textTertiary,
                                 modifier = Modifier.weight(1f),
@@ -4055,7 +4383,7 @@ private fun KeyMetricsEditorDialog(
                             ) {
                                 Icon(
                                     Icons.Filled.KeyboardArrowUp,
-                                    contentDescription = "Move ${item.metric.title} up",
+                                    contentDescription = stringResource(R.string.today_editor_move_up_cd, metricLabel),
                                     tint = if (index > 0) Palette.textSecondary else Palette.textTertiary,
                                     modifier = Modifier.size(Metrics.iconSmall),
                                 )
@@ -4067,7 +4395,7 @@ private fun KeyMetricsEditorDialog(
                             ) {
                                 Icon(
                                     Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = "Move ${item.metric.title} down",
+                                    contentDescription = stringResource(R.string.today_editor_move_down_cd, metricLabel),
                                     tint = if (index < items.lastIndex) Palette.textSecondary else Palette.textTertiary,
                                     modifier = Modifier.size(Metrics.iconSmall),
                                 )
@@ -4087,7 +4415,7 @@ private fun KeyMetricsEditorDialog(
                             KeyMetric.defaultOrder.forEach { items.add(EditableMetric(it, true)) }
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Palette.textSecondary),
-                    ) { Text("Reset", style = NoopType.body) }
+                    ) { Text(stringResource(R.string.today_reset), style = NoopType.body) }
                     Spacer(Modifier.weight(1f))
                     Button(
                         onClick = { onSave(items.filter { it.enabled }.map { it.metric }) },
@@ -4097,7 +4425,7 @@ private fun KeyMetricsEditorDialog(
                             containerColor = Palette.accent,
                             contentColor = Palette.surfaceBase,
                         ),
-                    ) { Text("Done", style = NoopType.captionNumber) }
+                    ) { Text(stringResource(R.string.today_done), style = NoopType.captionNumber) }
                 }
             }
         }

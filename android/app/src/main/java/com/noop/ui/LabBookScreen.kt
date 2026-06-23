@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -118,9 +121,13 @@ fun LabBookScreen(vm: AppViewModel) {
     // LazyColumn reproduces the eager `spacedBy(20.dp)`). The category/marker list stays inside the single
     // `when {}` item (it's a user-entered, bounded set, not unbounded history), so its appearance is
     // byte-identical; the sheets below the scaffold are untouched.
+    // Hoisted out of the non-composable `semantics {}` lambdas below.
+    val whatLabBookIsCd = stringResource(R.string.lab_book_cd_what_lab_book_is_and)
+    val readFullCd = stringResource(R.string.lab_book_cd_read_the_full_lab_book)
+
     LazyScreenScaffold(
-        title = "Lab Book",
-        subtitle = "Your bloods, BP and body numbers — kept private, on this phone.",
+        title = stringResource(R.string.lab_book_title),
+        subtitle = stringResource(R.string.lab_book_subtitle),
     ) {
         // Header card: count + scope + add action.
         item {
@@ -139,7 +146,7 @@ fun LabBookScreen(vm: AppViewModel) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(countLine(markers), style = NoopType.headline, color = Palette.textPrimary)
                         Text(
-                            "All stays on this phone. Nothing is sent anywhere.",
+                            stringResource(R.string.lab_book_all_stays_on_this_phone),
                             style = NoopType.footnote,
                             color = Palette.textTertiary,
                         )
@@ -149,19 +156,18 @@ fun LabBookScreen(vm: AppViewModel) {
                             .size(28.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { showDisclaimer = true }
-                            .semantics { contentDescription = "What Lab Book is — and isn't" },
+                            .semantics { contentDescription = whatLabBookIsCd },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(Icons.Filled.Info, contentDescription = null, tint = Palette.textTertiary, modifier = Modifier.size(18.dp))
                     }
                 }
                 Text(
-                    "It's a notebook, not a lab. NOOP lines up the numbers you enter — it doesn't test, " +
-                        "read, or judge them. Not medical advice.",
+                    stringResource(R.string.lab_book_it_s_a_notebook_not_a),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
-                PrimaryActionButton("Add a reading", Icons.Filled.Add) { showEditor = true }
+                PrimaryActionButton(stringResource(R.string.lab_book_add_a_reading), Icons.Filled.Add) { showEditor = true }
             }
         }
         }
@@ -182,13 +188,11 @@ fun LabBookScreen(vm: AppViewModel) {
                     ) {
                         Icon(Icons.Filled.FileUpload, contentDescription = null, tint = Palette.metricAmber, modifier = Modifier.size(16.dp))
                     }
-                    Text("Import readings", style = NoopType.headline, color = Palette.textPrimary, modifier = Modifier.weight(1f))
-                    StatePill("Coming soon", tone = StrandTone.Neutral, showsDot = false)
+                    Text(stringResource(R.string.lab_book_import_readings), style = NoopType.headline, color = Palette.textPrimary, modifier = Modifier.weight(1f))
+                    StatePill(stringResource(R.string.lab_book_coming_soon), tone = StrandTone.Neutral, showsDot = false)
                 }
                 Text(
-                    "A bulk markers CSV import (date, marker, value, unit) lands with the file importers in " +
-                        "Data Sources — same as nutrition and lifting. For now, add readings one at a time " +
-                        "above. Everything you import stays on this phone.",
+                    stringResource(R.string.lab_book_a_bulk_markers_csv_import_date),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
@@ -199,16 +203,14 @@ fun LabBookScreen(vm: AppViewModel) {
         item {
         when {
             !loaded -> {
-                Text("Reading your logbook…", style = NoopType.subhead, color = Palette.textTertiary)
+                Text(stringResource(R.string.lab_book_reading_your_logbook), style = NoopType.subhead, color = Palette.textTertiary)
             }
             markers.isEmpty() -> {
                 NoopCard {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Keep your own numbers here", style = NoopType.headline, color = Palette.textPrimary)
+                        Text(stringResource(R.string.lab_book_keep_your_own_numbers_here), style = NoopType.headline, color = Palette.textPrimary)
                         Text(
-                            "Type in a blood-pressure reading or a cholesterol value from your last appointment. " +
-                                "It stays on this phone, and over time you'll see how it lines up with your sleep, " +
-                                "heart rate and recovery.",
+                            stringResource(R.string.lab_book_type_in_a_blood_pressure_reading),
                             style = NoopType.subhead,
                             color = Palette.textSecondary,
                         )
@@ -220,7 +222,8 @@ fun LabBookScreen(vm: AppViewModel) {
                     val keys = markerKeys(markers, category)
                     SectionHeader(
                         title = category.displayName,
-                        overline = if (keys.size == 1) "1 marker" else "${keys.size} markers",
+                        overline = if (keys.size == 1) stringResource(R.string.lab_book_one_marker_label)
+                        else stringResource(R.string.lab_book_n_markers_label, keys.size),
                     )
                     for (key in keys) {
                         MarkerRow(key = key, readings = readingsFor(markers, key)) { detailKey = key }
@@ -234,20 +237,17 @@ fun LabBookScreen(vm: AppViewModel) {
         item {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                "Lab Book is a private notebook, not a medical service. NOOP stores and lines up the numbers " +
-                    "you enter — it doesn't test, read, diagnose, or advise. Your records never leave this phone; " +
-                    "there's no account or cloud, so it isn't \"HIPAA-covered.\" Always rely on your doctor or " +
-                    "pharmacist to interpret results.",
+                stringResource(R.string.lab_book_lab_book_is_a_private_notebook),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
             )
             Text(
-                "Read the full note",
+                stringResource(R.string.lab_book_read_the_full_note),
                 style = NoopType.footnote,
                 color = Palette.accent,
                 modifier = Modifier
                     .clickable { showDisclaimer = true }
-                    .semantics { contentDescription = "Read the full Lab Book note" },
+                    .semantics { contentDescription = readFullCd },
             )
         }
         }
@@ -352,14 +352,19 @@ private fun MarkerDetailSheet(
     NoopBottomSheet(onDismiss = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
             Text(name, style = NoopType.title2, color = Palette.textPrimary)
+            val readingCountPhrase = if (readings.size == 1) {
+                stringResource(R.string.lab_book_reading_singular, readings.size)
+            } else {
+                stringResource(R.string.lab_book_reading_plural, readings.size)
+            }
             Text(
-                "${readings.size} reading${if (readings.size == 1) "" else "s"} · your own entries",
+                stringResource(R.string.lab_book_reading_count_entries, readingCountPhrase),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
 
             // Trend (descriptive arithmetic, never interpretation).
-            SectionHeader("Trend", overline = "your readings over time")
+            SectionHeader(stringResource(R.string.lab_book_trend), overline = stringResource(R.string.lab_book_trend_overline))
             NoopCard(tint = Palette.metricCyan) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     val nums = numeric.mapNotNull { it.value }
@@ -369,7 +374,7 @@ private fun MarkerDetailSheet(
                     Text(trendSentence(markerKey, numeric, unit), style = NoopType.subhead, color = Palette.textSecondary)
                     latestReferenceText(readings)?.let { ref ->
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            SourceBadge("from your report", tint = Palette.textTertiary)
+                            SourceBadge(stringResource(R.string.lab_book_from_your_report), tint = Palette.textTertiary)
                             Text(ref, style = NoopType.footnote, color = Palette.textSecondary)
                         }
                     }
@@ -378,7 +383,10 @@ private fun MarkerDetailSheet(
 
             // Compare with a signal (reuses the Pearson idiom + restrained copy).
             if (numeric.isNotEmpty()) {
-                SectionHeader("Compare with a signal", overline = "side by side · ${window.phrase} before each reading")
+                SectionHeader(
+                    stringResource(R.string.lab_book_compare_with_a_signal),
+                    overline = stringResource(R.string.lab_book_compare_overline, window.phrase),
+                )
                 NoopCard {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -404,7 +412,7 @@ private fun MarkerDetailSheet(
             }
 
             // History table.
-            SectionHeader("History", overline = "every reading you've entered")
+            SectionHeader(stringResource(R.string.lab_book_history), overline = stringResource(R.string.lab_book_history_overline))
             NoopCard {
                 Column {
                     val reversed = readings.reversed()
@@ -418,8 +426,7 @@ private fun MarkerDetailSheet(
             }
 
             Text(
-                "These are your own numbers shown back to you. NOOP doesn't decide whether any value is " +
-                    "normal, high or low.",
+                stringResource(R.string.lab_book_these_are_your_own_numbers_shown),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
             )
@@ -439,19 +446,21 @@ private fun CorrelationResult(
     val n = pairs.size
     when {
         signal == null -> Text(
-            "Pick a wearable signal (resting HR, HRV, sleep, Charge, weight…) to line it up against this " +
-                "marker. NOOP averages the signal over the ${window.phrase} before each reading.",
+            stringResource(R.string.lab_book_pick_a_wearable_signal, window.phrase),
             style = NoopType.subhead,
             color = Palette.textTertiary,
         )
-        computing -> Text("Lining them up…", style = NoopType.subhead, color = Palette.textTertiary)
+        computing -> Text(stringResource(R.string.lab_book_lining_them_up), style = NoopType.subhead, color = Palette.textTertiary)
         n < LAB_FLOOR -> Text(
             if (n == 0) {
-                "No overlap yet between this marker and ${signal.title.lowercase()}. Log a few more readings " +
-                    "(and keep wearing your strap)."
+                stringResource(R.string.lab_book_no_overlap_yet, signal.title.lowercase())
             } else {
-                "$n reading${if (n == 1) "" else "s"} line up so far — not enough to read a trend yet " +
-                    "(NOOP waits for $LAB_FLOOR)."
+                val readingPhrase = if (n == 1) {
+                    stringResource(R.string.lab_book_reading_singular, n)
+                } else {
+                    stringResource(R.string.lab_book_reading_plural, n)
+                }
+                stringResource(R.string.lab_book_n_line_up_so_far, readingPhrase, LAB_FLOOR)
             },
             style = NoopType.subhead,
             color = Palette.textTertiary,
@@ -461,22 +470,22 @@ private fun CorrelationResult(
             val tint = correlationColor(r)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Pure symbol concat of two dynamic marker/signal names (no translatable copy).
                     Text("$markerName ↔ ${signal.title}", style = NoopType.headline, color = Palette.textPrimary, modifier = Modifier.weight(1f), maxLines = 2)
                     TrendChip(text = signedR(r), color = tint)
                     Spacer(Modifier.width(8.dp))
-                    Text("r = ${signedR(r)}", style = NoopType.number(18f), color = tint)
+                    Text(stringResource(R.string.lab_book_r_equals, signedR(r)), style = NoopType.number(18f), color = tint)
                 }
                 Text(insightSentence(markerName, signal.title, r), style = NoopType.subhead, color = Palette.textSecondary)
                 Text(
-                    "$n readings used · ${strengthWord(r)} ${directionWord(r)} association. This is your own data " +
-                        "sitting side by side — it's not a medical finding, and it shows association, not cause.",
+                    stringResource(R.string.lab_book_n_readings_used, n, strengthWord(r), directionWord(r)),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
             }
         }
         else -> Text(
-            "$n readings line up, but there isn't enough variation to compute a relationship.",
+            stringResource(R.string.lab_book_not_enough_variation, n),
             style = NoopType.subhead,
             color = Palette.textTertiary,
         )
@@ -486,16 +495,17 @@ private fun CorrelationResult(
 @Composable
 private fun SignalPicker(selected: LabSignal?, onSelect: (LabSignal?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    val chooseSignalCd = stringResource(R.string.lab_book_cd_choose_a_wearable_signal_to)
     Box {
         Row(
             modifier = Modifier
                 .clickable { expanded = true }
-                .semantics { contentDescription = "Choose a wearable signal to compare" },
+                .semantics { contentDescription = chooseSignalCd },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = null, tint = Palette.accent, modifier = Modifier.size(16.dp))
-            Text(selected?.title ?: "Choose a signal", style = NoopType.subhead, color = Palette.accent)
+            Text(selected?.title ?: stringResource(R.string.lab_book_choose_a_signal), style = NoopType.subhead, color = Palette.accent)
         }
         androidx.compose.material3.DropdownMenu(
             expanded = expanded,
@@ -509,7 +519,7 @@ private fun SignalPicker(selected: LabSignal?, onSelect: (LabSignal?) -> Unit) {
             }
             if (selected != null) {
                 androidx.compose.material3.DropdownMenuItem(
-                    text = { Text("Clear", style = NoopType.body, color = Palette.textSecondary) },
+                    text = { Text(stringResource(R.string.lab_book_clear), style = NoopType.body, color = Palette.textSecondary) },
                     onClick = { onSelect(null); expanded = false },
                 )
             }
@@ -519,6 +529,7 @@ private fun SignalPicker(selected: LabSignal?, onSelect: (LabSignal?) -> Unit) {
 
 @Composable
 private fun HistoryRow(markerKey: String, row: LabMarkerRow, onDelete: (String) -> Unit) {
+    val deleteReadingCd = stringResource(R.string.lab_book_cd_delete_this_reading)
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 9.dp),
         verticalAlignment = Alignment.Top,
@@ -536,7 +547,7 @@ private fun HistoryRow(markerKey: String, row: LabMarkerRow, onDelete: (String) 
                 .size(28.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable { onDelete(row.id) }
-                .semantics { contentDescription = "Delete this reading" },
+                .semantics { contentDescription = deleteReadingCd },
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Filled.Delete, contentDescription = null, tint = Palette.statusCritical, modifier = Modifier.size(15.dp))
@@ -550,14 +561,14 @@ private fun HistoryRow(markerKey: String, row: LabMarkerRow, onDelete: (String) 
 private fun LabBookDisclaimerSheet(onDismiss: () -> Unit) {
     NoopBottomSheet(onDismiss = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("About Lab Book", style = NoopType.title2, color = Palette.textPrimary)
-            Text("A private notebook, not a medical service.", style = NoopType.subhead, color = Palette.textSecondary)
-            DisclaimerBullet("NOOP stores and lines up the numbers you enter yourself. It does not test you, read your results, give medical advice, or diagnose anything.")
-            DisclaimerBullet("Anything you see here — including any side-by-side trend — is your own information shown back to you. It's an association, never a cause, and never a medical finding.")
-            DisclaimerBullet("NOOP never decides whether a value is \"normal,\" \"high,\" or \"low.\" Any reference range shown is exactly what you typed from your own report.")
-            DisclaimerBullet("Your records never leave this phone. There's no account, no cloud, no NOOP server. Because NOOP is an independent app you run yourself — not a healthcare provider — it isn't \"HIPAA-covered,\" and that protection doesn't apply here; the safety comes from the data being local-only and yours.")
-            DisclaimerBullet("Always rely on your doctor, pharmacist, or a qualified professional to interpret results and make decisions. If a number worries you, talk to them — not to an app.")
-            PrimaryActionButton("Got it", Icons.Filled.Check, onClick = onDismiss)
+            Text(stringResource(R.string.lab_book_about_lab_book), style = NoopType.title2, color = Palette.textPrimary)
+            Text(stringResource(R.string.lab_book_a_private_notebook_not_a_medical), style = NoopType.subhead, color = Palette.textSecondary)
+            DisclaimerBullet(stringResource(R.string.lab_book_disclaimer_stores))
+            DisclaimerBullet(stringResource(R.string.lab_book_disclaimer_association))
+            DisclaimerBullet(stringResource(R.string.lab_book_disclaimer_never_decides))
+            DisclaimerBullet(stringResource(R.string.lab_book_disclaimer_never_leave))
+            DisclaimerBullet(stringResource(R.string.lab_book_disclaimer_rely_on_doctor))
+            PrimaryActionButton(stringResource(R.string.lab_book_got_it), Icons.Filled.Check, onClick = onDismiss)
         }
     }
 }
@@ -603,11 +614,20 @@ private val LAB_SIGNALS = listOf(
 
 // MARK: - Helpers (display, formatting, trend, correlation)
 
+@Composable
 private fun countLine(markers: List<LabMarkerRow>): String {
     val keys = markers.map { it.markerKey }.toSet().size
-    val markerWord = if (keys == 1) "marker" else "markers"
-    val readingWord = if (markers.size == 1) "reading" else "readings"
-    return "$keys $markerWord tracked · ${markers.size} $readingWord"
+    val markerPhrase = if (keys == 1) {
+        stringResource(R.string.lab_book_count_marker_singular, keys)
+    } else {
+        stringResource(R.string.lab_book_count_marker_plural, keys)
+    }
+    val readingPhrase = if (markers.size == 1) {
+        stringResource(R.string.lab_book_reading_singular, markers.size)
+    } else {
+        stringResource(R.string.lab_book_reading_plural, markers.size)
+    }
+    return stringResource(R.string.lab_book_count_line, markerPhrase, readingPhrase)
 }
 
 private fun displayName(key: String): String =
@@ -636,8 +656,10 @@ private fun latestLabel(row: LabMarkerRow?, key: String): String {
     return row.value?.let { "${formatValue(it, key)} ${row.unit}" } ?: (row.valueText ?: "—")
 }
 
+@Composable
 private fun lastTakenCaption(row: LabMarkerRow?): String =
-    if (row == null) "no readings yet" else "last taken ${labDayLabel(row.takenAt)}"
+    if (row == null) stringResource(R.string.lab_book_no_readings_yet)
+    else stringResource(R.string.lab_book_last_taken, labDayLabel(row.takenAt))
 
 private fun formatValue(v: Double, key: String): String {
     val decimals = MarkerCatalog.definition(key)?.decimals ?: 1
@@ -648,41 +670,50 @@ private fun latestReferenceText(readings: List<LabMarkerRow>): String? =
     readings.lastOrNull { !it.referenceText.isNullOrEmpty() }?.referenceText
 
 /** "Your last 3 readings: 3.4 → 3.1 → 2.9 mmol/L, trending down." — descriptive only. */
+@Composable
 private fun trendSentence(key: String, numeric: List<LabMarkerRow>, unit: String): String {
     val last = numeric.lastOrNull()?.value
-        ?: return numeric.lastOrNull()?.valueText?.let { "Latest entry: $it." } ?: "No numeric readings yet."
+        ?: return numeric.lastOrNull()?.valueText?.let { stringResource(R.string.lab_book_latest_entry, it) }
+            ?: stringResource(R.string.lab_book_no_numeric_readings)
     if (numeric.size < 2) {
-        return "One reading so far: ${formatValue(last, key)} $unit. Log a few more to see a trend."
+        return stringResource(R.string.lab_book_one_reading_so_far, "${formatValue(last, key)} $unit")
     }
     val shown = numeric.takeLast(3).mapNotNull { it.value }
     val arrowed = shown.joinToString(" → ") { formatValue(it, key) }
     val first = shown.first()
     val direction = when {
-        last > first -> "trending up"
-        last < first -> "trending down"
-        else -> "holding steady"
+        last > first -> stringResource(R.string.lab_book_trending_up)
+        last < first -> stringResource(R.string.lab_book_trending_down)
+        else -> stringResource(R.string.lab_book_holding_steady)
     }
-    return "Your last ${shown.size} readings: $arrowed $unit, $direction."
+    return stringResource(R.string.lab_book_your_last_n_readings, shown.size, arrowed, unit, direction)
 }
 
 private fun signedR(r: Double): String = (if (r >= 0) "+" else "−") + java.lang.String.format(Locale.US, "%.2f", abs(r))
 
+@Composable
 private fun strengthWord(r: Double): String = when {
-    abs(r) < 0.1 -> "negligible"
-    abs(r) < 0.3 -> "weak"
-    abs(r) < 0.5 -> "moderate"
-    abs(r) < 0.7 -> "strong"
-    else -> "very strong"
+    abs(r) < 0.1 -> stringResource(R.string.lab_book_strength_negligible)
+    abs(r) < 0.3 -> stringResource(R.string.lab_book_strength_weak)
+    abs(r) < 0.5 -> stringResource(R.string.lab_book_strength_moderate)
+    abs(r) < 0.7 -> stringResource(R.string.lab_book_strength_strong)
+    else -> stringResource(R.string.lab_book_strength_very_strong)
 }
 
-private fun directionWord(r: Double): String = if (abs(r) < 0.1) "" else if (r >= 0) "positive" else "negative"
+@Composable
+private fun directionWord(r: Double): String =
+    if (abs(r) < 0.1) "" else if (r >= 0) stringResource(R.string.lab_book_direction_positive) else stringResource(R.string.lab_book_direction_negative)
 
+@Composable
 private fun insightSentence(markerName: String, signalName: String, r: Double): String {
     if (abs(r) < 0.3) {
-        return "Over your readings, $markerName and ${signalName.lowercase()} move largely independently — no clear relationship."
+        return stringResource(R.string.lab_book_insight_independent, markerName, signalName.lowercase())
     }
-    val verb = if (r < 0) "tends to be lower" else "tends to be higher"
-    return "When $markerName is higher, ${signalName.lowercase()} $verb."
+    return if (r < 0) {
+        stringResource(R.string.lab_book_insight_lower, markerName, signalName.lowercase())
+    } else {
+        stringResource(R.string.lab_book_insight_higher, markerName, signalName.lowercase())
+    }
 }
 
 @Composable

@@ -42,7 +42,8 @@ object WorkoutEditing {
      * renders "Traditional Strength Training". Already-spaced labels (manual/edited) pass through. (#175)
      */
     fun displaySport(sport: String): String {
-        if (sport == "detected") return "Activity"
+        if (sport == "detected") return "Activity" // i18n: intentionally English. This pure helper is called off the composition AND its result is persisted back as the row's `sport` on relabel/duplicate (WorkoutsScreen), so it must stay the canonical value, not a localized label. The display-only key R.string.workouts_sport_activity exists for a future display/value split.
+
         if (sport.isEmpty() || sport.contains(" ")) return sport
         val out = StringBuilder()
         var prev: Char? = null
@@ -226,7 +227,13 @@ object WorkoutEditing {
         )
     }
 
-    /** Common sports offered when re-labelling a detected bout (the user can fine-tune via Edit). */
+    /**
+     * Common sports offered when re-labelling a detected bout (the user can fine-tune via Edit).
+     * i18n: intentionally left English. These labels are stored as the row's `sport` (the persisted
+     * value), not purely display text — re-labelling writes the chosen string back as the sport id.
+     * Localizing the menu would need a display/value split (localized label → canonical sport id) so a
+     * German user still stores a stable sport key; that's a data-model change, out of scope for wiring.
+     */
     val relabelSports: List<String> = listOf(
         "Running", "Walking", "Cycling", "Strength Training", "Swimming", "Rowing", "Yoga", "HIIT",
         "CrossFit", "Hiking", "Tennis",

@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,8 +75,8 @@ fun CoachScreen(vm: CoachViewModel = viewModel()) {
     val configured = remember(keyVersion, provider, customConnected) { vm.isConfigured(context) }
 
     ScreenScaffold(
-        title = "Coach",
-        subtitle = "Ask about your recovery, strain, sleep and HRV — grounded in your own numbers.",
+        title = stringResource(R.string.coach_title),
+        subtitle = stringResource(R.string.coach_subtitle),
     ) {
         if (!configured) {
             CoachSetup(vm = vm)
@@ -100,21 +103,19 @@ private fun CoachSetup(vm: CoachViewModel) {
         Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.Lock, contentDescription = null, tint = Palette.accent, modifier = Modifier.size(18.dp))
-                Text("Connect a provider", style = NoopType.headline, color = Palette.textPrimary)
+                Text(stringResource(R.string.coach_connect_provider), style = NoopType.headline, color = Palette.textPrimary)
             }
             Text(
                 if (isCustom)
-                    "Point the coach at any OpenAI-compatible server — a local model (Ollama, LM " +
-                        "Studio, llama.cpp) keeps everything on your device; an API key is optional."
+                    stringResource(R.string.coach_setup_custom_description)
                 else
-                    "Bring your own API key. It is stored encrypted on this device and only used to " +
-                        "send your question plus a short summary of your metrics to the provider you pick.",
+                    stringResource(R.string.coach_setup_cloud_description),
                 style = NoopType.subhead, color = Palette.textSecondary,
             )
 
             // Provider choice.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Overline("Provider")
+                Overline(stringResource(R.string.coach_provider_label))
                 SegmentedPillControl(
                     items = AiProvider.entries,
                     selection = provider,
@@ -126,14 +127,15 @@ private fun CoachSetup(vm: CoachViewModel) {
             // Server URL — Custom (local LLM) only.
             if (isCustom) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Overline("Server URL")
+                    Overline(stringResource(R.string.coach_server_url_label))
+                    val serverUrlDesc = stringResource(R.string.coach_server_url_cd)
                     OutlinedTextField(
                         value = customBaseUrl,
                         onValueChange = { vm.setCustomBaseUrl(context, it) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .semantics { contentDescription = "Server URL" },
-                        placeholder = { Text("http://localhost:11434/v1", style = NoopType.body, color = Palette.textTertiary) },
+                            .semantics { contentDescription = serverUrlDesc },
+                        placeholder = { Text(stringResource(R.string.coach_http_localhost_11434_v1), style = NoopType.body, color = Palette.textTertiary) },
                         textStyle = NoopType.mono(13f),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -146,7 +148,7 @@ private fun CoachSetup(vm: CoachViewModel) {
             // Model dropdown + live-list refresh.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Overline("Model")
+                    Overline(stringResource(R.string.coach_model_label))
                     Spacer(Modifier.weight(1f))
                     RefreshModelsButton(
                         refreshing = refreshingModels,
@@ -164,19 +166,22 @@ private fun CoachSetup(vm: CoachViewModel) {
 
             // Masked key field — optional for a local Custom server.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Overline(if (isCustom) "API Key (optional)" else "API Key")
+                Overline(
+                    if (isCustom) stringResource(R.string.coach_api_key_optional_label)
+                    else stringResource(R.string.coach_api_key_label)
+                )
                 CoachKeyField(
                     value = keyInput,
                     onValueChange = { keyInput = it },
-                    placeholder = if (isCustom) "Only if your server requires one"
-                                  else "Paste your ${provider.displayName} key",
+                    placeholder = if (isCustom) stringResource(R.string.coach_key_placeholder_custom)
+                                  else stringResource(R.string.coach_key_placeholder_cloud, provider.displayName),
                 )
             }
 
             // Connect (Custom) / Save key (cloud).
             if (isCustom) {
                 CoachPrimaryButton(
-                    label = "Connect",
+                    label = stringResource(R.string.coach_connect_button),
                     enabled = customBaseUrl.isNotBlank(),
                     onClick = {
                         if (keyInput.isNotBlank()) vm.saveKey(context, keyInput)
@@ -185,7 +190,7 @@ private fun CoachSetup(vm: CoachViewModel) {
                 )
             } else {
                 CoachPrimaryButton(
-                    label = "Save key",
+                    label = stringResource(R.string.coach_save_key_button),
                     enabled = keyInput.isNotBlank(),
                     onClick = { vm.saveKey(context, keyInput) },
                 )
@@ -216,15 +221,16 @@ private fun CoachChat(vm: CoachViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatePill(title = "${provider.displayName} · $model", tone = StrandTone.Accent, showsDot = true)
                 Spacer(Modifier.weight(1f))
+                val disconnectCd = stringResource(R.string.coach_disconnect_provider_cd)
                 Text(
-                    "Disconnect",
+                    stringResource(R.string.coach_active_disconnect),
                     style = NoopType.caption,
                     color = Palette.textSecondary,
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
                         .clickable { vm.disconnect(context) }
                         .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .semantics { contentDescription = "Disconnect provider" },
+                        .semantics { contentDescription = disconnectCd },
                 )
             }
         }
@@ -234,10 +240,10 @@ private fun CoachChat(vm: CoachViewModel) {
         NoopCard(padding = 14.dp, tint = Palette.chargeColor) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Let the coach use my data", style = NoopType.subhead, color = Palette.textPrimary)
+                    Text(stringResource(R.string.coach_consent_title), style = NoopType.subhead, color = Palette.textPrimary)
                     Text(
-                        if (consent) "On — your recovery, sleep, HRV and workouts are shared with the provider for tailored coaching."
-                        else "Off — the coach answers generally and sends none of your metrics.",
+                        if (consent) stringResource(R.string.coach_consent_on)
+                        else stringResource(R.string.coach_consent_off),
                         style = NoopType.footnote, color = Palette.textTertiary,
                     )
                 }
@@ -253,7 +259,7 @@ private fun CoachChat(vm: CoachViewModel) {
             NoopCard(padding = 18.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Ask anything about your recent recovery, strain, sleep or HRV.",
+                        stringResource(R.string.coach_empty_prompt),
                         style = NoopType.subhead, color = Palette.textSecondary,
                     )
                     SuggestedPrompts(onPick = { input = it })
@@ -268,11 +274,12 @@ private fun CoachChat(vm: CoachViewModel) {
 
         // Error line (red).
         if (error != null) {
+            val errorCd = stringResource(R.string.coach_error_cd, error!!)
             Text(
                 error!!,
                 style = NoopType.subhead,
                 color = Palette.statusCritical,
-                modifier = Modifier.semantics { contentDescription = "Coach error: ${error}" },
+                modifier = Modifier.semantics { contentDescription = errorCd },
             )
         }
 
@@ -294,7 +301,7 @@ private fun CoachChat(vm: CoachViewModel) {
                     if (error != null) vm.clearError()
                 },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask your coach…", style = NoopType.body, color = Palette.textTertiary) },
+                placeholder = { Text(stringResource(R.string.coach_input_placeholder), style = NoopType.body, color = Palette.textTertiary) },
                 textStyle = NoopType.body,
                 singleLine = false,
                 maxLines = 4,
@@ -363,13 +370,14 @@ private fun ChatBubble(msg: ChatMsg) {
 
 @Composable
 private fun ThinkingBubble() {
+    val thinkingCd = stringResource(R.string.coach_thinking_cd)
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(16.dp))
                 .frostedCardSurface(tint = Palette.chargeColor, cornerRadius = 16.dp)
                 .padding(horizontal = 14.dp, vertical = 12.dp)
-                .semantics { contentDescription = "Coach is thinking" },
+                .semantics { contentDescription = thinkingCd },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -378,26 +386,30 @@ private fun ThinkingBubble() {
                 strokeWidth = 2.dp,
                 color = Palette.accent,
             )
-            Text("Thinking…", style = NoopType.subhead, color = Palette.textSecondary)
+            Text(stringResource(R.string.coach_thinking_label), style = NoopType.subhead, color = Palette.textSecondary)
         }
     }
 }
 
 // MARK: - Suggested prompts
 
-private val SUGGESTED_PROMPTS = listOf(
-    "How's my recovery trending this week?",
-    "Should I train hard or take it easy today?",
-    "Why might my HRV be low lately?",
-    "How can I improve my sleep?",
+// i18n: the prompts are resolved at the @Composable render site (each is its own string key), so a
+// German device offers German example questions; the canonical EN copy lives in values/strings.xml.
+private val SUGGESTED_PROMPT_KEYS = listOf(
+    R.string.coach_suggested_prompt_recovery_trend,
+    R.string.coach_suggested_prompt_train_or_rest,
+    R.string.coach_suggested_prompt_hrv_low,
+    R.string.coach_suggested_prompt_improve_sleep,
 )
 
 @Composable
 private fun SuggestedPrompts(onPick: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Overline("Try asking")
+        Overline(stringResource(R.string.coach_try_asking))
         // Simple wrapped column of chips (one per row keeps long prompts readable).
-        SUGGESTED_PROMPTS.forEach { prompt ->
+        SUGGESTED_PROMPT_KEYS.forEach { key ->
+            val prompt = stringResource(key)
+            val promptCd = stringResource(R.string.coach_suggested_prompt_cd, prompt)
             val shape = RoundedCornerShape(50)
             Text(
                 prompt,
@@ -410,7 +422,7 @@ private fun SuggestedPrompts(onPick: (String) -> Unit) {
                     .border(1.dp, Palette.hairline, shape)
                     .clickable { onPick(prompt) }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .semantics { contentDescription = "Suggested prompt: $prompt" },
+                    .semantics { contentDescription = promptCd },
             )
         }
     }
@@ -427,6 +439,7 @@ private fun ModelDropdown(
     var expanded by remember { mutableStateOf(false) }
     var showCustom by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(14.dp)
+    val modelCd = stringResource(R.string.coach_model_dropdown_cd, selected)
     Box {
         Row(
             modifier = Modifier
@@ -436,7 +449,7 @@ private fun ModelDropdown(
                 .border(1.dp, Palette.hairline, shape)
                 .clickable { expanded = true }
                 .padding(horizontal = 14.dp, vertical = 12.dp)
-                .semantics { contentDescription = "Model: $selected. Tap to change." },
+                .semantics { contentDescription = modelCd },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(selected, style = NoopType.body, color = Palette.textPrimary, modifier = Modifier.weight(1f))
@@ -464,7 +477,7 @@ private fun ModelDropdown(
             }
             // Free-text escape hatch — any model id the provider accepts can be entered.
             DropdownMenuItem(
-                text = { Text("Custom…", style = NoopType.body, color = Palette.textSecondary) },
+                text = { Text(stringResource(R.string.coach_model_custom_option), style = NoopType.body, color = Palette.textSecondary) },
                 onClick = {
                     expanded = false
                     showCustom = true
@@ -497,21 +510,22 @@ private fun CustomModelDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.surfaceOverlay,
-        title = { Text("Custom model", style = NoopType.headline, color = Palette.textPrimary) },
+        title = { Text(stringResource(R.string.coach_custom_model_title), style = NoopType.headline, color = Palette.textPrimary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Enter any model id the provider accepts.",
+                    stringResource(R.string.coach_custom_model_description),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
+                val customModelCd = stringResource(R.string.coach_custom_model_id_cd)
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .semantics { contentDescription = "Custom model id" },
-                    placeholder = { Text("e.g. gpt-4o", style = NoopType.body, color = Palette.textTertiary) },
+                        .semantics { contentDescription = customModelCd },
+                    placeholder = { Text(stringResource(R.string.coach_custom_model_placeholder), style = NoopType.body, color = Palette.textTertiary) },
                     textStyle = NoopType.mono(13f),
                     singleLine = true,
                     colors = coachFieldColors(),
@@ -524,12 +538,12 @@ private fun CustomModelDialog(
                 onClick = { onConfirm(text.trim()) },
                 enabled = text.isNotBlank(),
             ) {
-                Text("Use model", style = NoopType.headline, color = Palette.accent)
+                Text(stringResource(R.string.coach_use_model_button), style = NoopType.headline, color = Palette.accent)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", style = NoopType.subhead, color = Palette.textSecondary)
+                Text(stringResource(R.string.sleep_cancel), style = NoopType.subhead, color = Palette.textSecondary)
             }
         },
     )
@@ -545,6 +559,7 @@ private fun RefreshModelsButton(
 ) {
     val shape = RoundedCornerShape(50)
     val active = enabled && !refreshing
+    val fetchModelsCd = stringResource(R.string.coach_fetch_models_cd)
     Row(
         modifier = Modifier
             .clip(shape)
@@ -552,7 +567,7 @@ private fun RefreshModelsButton(
             .border(1.dp, Palette.hairline, shape)
             .let { if (active) it.clickable(onClick = onClick) else it }
             .padding(horizontal = 10.dp, vertical = 6.dp)
-            .semantics { contentDescription = "Fetch models from provider" },
+            .semantics { contentDescription = fetchModelsCd },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -567,7 +582,7 @@ private fun RefreshModelsButton(
             )
         }
         Text(
-            if (refreshing) "Fetching…" else "Refresh models",
+            if (refreshing) stringResource(R.string.coach_refresh_models_fetching) else stringResource(R.string.coach_refresh_models_label),
             style = NoopType.caption,
             color = if (active) Palette.textPrimary else Palette.textTertiary,
         )
@@ -582,12 +597,13 @@ private fun CoachKeyField(
     onValueChange: (String) -> Unit,
     placeholder: String,
 ) {
+    val apiKeyCd = stringResource(R.string.coach_api_key_hidden_cd)
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier
             .fillMaxWidth()
-            .semantics { contentDescription = "API key (hidden)" },
+            .semantics { contentDescription = apiKeyCd },
         placeholder = { Text(placeholder, style = NoopType.body, color = Palette.textTertiary) },
         textStyle = NoopType.mono(13f),
         singleLine = true,
@@ -620,6 +636,7 @@ private fun CoachPrimaryButton(label: String, enabled: Boolean, onClick: () -> U
 
 @Composable
 private fun SendButton(enabled: Boolean, sending: Boolean, onClick: () -> Unit) {
+    val sendCd = stringResource(R.string.coach_send_message_cd)
     val bg = if (enabled) Palette.accent else Palette.surfaceInset
     Box(
         modifier = Modifier
@@ -628,7 +645,7 @@ private fun SendButton(enabled: Boolean, sending: Boolean, onClick: () -> Unit) 
             .background(bg)
             .border(1.dp, if (enabled) Color.Transparent else Palette.hairline, RoundedCornerShape(14.dp))
             .let { if (enabled) it.clickable(onClick = onClick) else it }
-            .semantics { contentDescription = "Send message" },
+            .semantics { contentDescription = sendCd },
         contentAlignment = Alignment.Center,
     ) {
         if (sending) {
@@ -655,12 +672,8 @@ private fun PrivacyNote(local: Boolean = false) {
     ) {
         Icon(Icons.Filled.Lock, contentDescription = null, tint = Palette.textTertiary, modifier = Modifier.size(13.dp))
         Text(
-            if (local)
-                "The coach talks only to the server URL you set — point it at a local model to " +
-                    "keep everything on your device. Nothing is sent until you ask."
-            else
-                "Private by default — only your question and a short metrics summary are sent, " +
-                    "and only after you set a key.",
+            if (local) stringResource(R.string.coach_privacy_note_local)
+            else stringResource(R.string.coach_privacy_note_cloud),
             style = NoopType.footnote,
             color = Palette.textTertiary,
         )

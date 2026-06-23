@@ -28,11 +28,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noop.R
 import com.noop.analytics.HydrationGoal
 import com.noop.analytics.HydrationStore
 import kotlinx.coroutines.launch
@@ -93,8 +95,8 @@ fun HydrationScreen(viewModel: AppViewModel) {
     // (LazyColumn reproduces the eager `spacedBy(20.dp)`); only on-screen cards compose + are
     // accessibility-walked. All children are unconditional, so every wrap is a bare `item { }`.
     LazyScreenScaffold(
-        title = "Hydration",
-        subtitle = "Your fluid intake today, on this phone only.",
+        title = stringResource(R.string.hydration_title),
+        subtitle = stringResource(R.string.hydration_subtitle),
     ) {
         // RING — total vs goal, in litres. GlowRing already shows the clean full-circle track with no
         // bloom on the light field; the blue accent keeps it on the reset palette (no gold).
@@ -121,14 +123,20 @@ fun HydrationScreen(viewModel: AppViewModel) {
                             color = Palette.textPrimary,
                         )
                         Text(
-                            String.format(Locale.US, "of %.1f L", goalMl / 1000.0),
+                            stringResource(
+                                R.string.hydration_of_goal,
+                                String.format(Locale.US, "%.1f", goalMl / 1000.0),
+                            ),
                             style = NoopType.subhead,
                             color = Palette.textSecondary,
                         )
                     }
                 }
                 Text(
-                    "${kotlin.math.min(100, (fraction * 100).toInt())}% of today's goal",
+                    stringResource(
+                        R.string.hydration_percent_of_goal,
+                        kotlin.math.min(100, (fraction * 100).toInt()),
+                    ),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
@@ -140,19 +148,19 @@ fun HydrationScreen(viewModel: AppViewModel) {
         item {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             NoopButton(
-                text = "Sip",
+                text = stringResource(R.string.hydration_sip),
                 leadingIcon = Icons.Filled.WaterDrop,
                 kind = NoopButtonKind.Secondary,
                 modifier = Modifier.weight(1f),
             ) { log(HydrationGoal.SIP_ML) }
             NoopButton(
-                text = "Cup",
+                text = stringResource(R.string.hydration_cup),
                 leadingIcon = Icons.Filled.LocalDrink,
                 kind = NoopButtonKind.Secondary,
                 modifier = Modifier.weight(1f),
             ) { log(HydrationGoal.CUP_ML) }
             NoopButton(
-                text = "Bottle",
+                text = stringResource(R.string.hydration_bottle),
                 leadingIcon = Icons.Filled.LocalDrink,
                 kind = NoopButtonKind.Secondary,
                 modifier = Modifier.weight(1f),
@@ -161,7 +169,12 @@ fun HydrationScreen(viewModel: AppViewModel) {
         }
         item {
         Text(
-            "Sip ${HydrationGoal.SIP_ML} ml · Cup ${HydrationGoal.CUP_ML} ml · Bottle ${HydrationGoal.BOTTLE_ML} ml",
+            stringResource(
+                R.string.hydration_amounts_caption,
+                HydrationGoal.SIP_ML,
+                HydrationGoal.CUP_ML,
+                HydrationGoal.BOTTLE_ML,
+            ),
             style = NoopType.footnote,
             color = Palette.textTertiary,
         )
@@ -171,7 +184,7 @@ fun HydrationScreen(viewModel: AppViewModel) {
         item {
         NoopCard(padding = 18.dp) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Overline("Last 7 days")
+                Overline(stringResource(R.string.hydration_last_7_days))
                 HydrationHistoryBars(history = history, goalMl = goalMl, accent = accent)
             }
         }
@@ -182,10 +195,10 @@ fun HydrationScreen(viewModel: AppViewModel) {
         item {
         NoopCard(padding = 18.dp) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Overline("Today")
+                Overline(stringResource(R.string.today_today))
                 if (totalMl <= 0.0) {
                     Text(
-                        "No drinks logged yet. Tap Sip, Cup or Bottle to start.",
+                        stringResource(R.string.hydration_empty),
                         style = NoopType.subhead,
                         color = Palette.textSecondary,
                     )
@@ -202,13 +215,13 @@ fun HydrationScreen(viewModel: AppViewModel) {
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            "Logged today",
+                            stringResource(R.string.mind_logged_today),
                             style = NoopType.subhead,
                             color = Palette.textPrimary,
                             modifier = Modifier.weight(1f),
                         )
                         Text(
-                            "${totalMl.toInt()} ml",
+                            stringResource(R.string.hydration_logged_amount, totalMl.toInt()),
                             style = NoopType.headline.copy(fontWeight = FontWeight.SemiBold),
                             color = Palette.textPrimary,
                         )
@@ -220,7 +233,7 @@ fun HydrationScreen(viewModel: AppViewModel) {
 
         item {
         Text(
-            "A simple goal that adjusts to your effort. General wellness guidance, not medical advice.",
+            stringResource(R.string.hydration_disclaimer),
             style = NoopType.footnote,
             color = Palette.textTertiary,
             textAlign = TextAlign.Start,
@@ -241,7 +254,7 @@ private fun HydrationHistoryBars(
     accent: Color,
 ) {
     if (history.isEmpty()) {
-        Text("No history yet.", style = NoopType.footnote, color = Palette.textTertiary)
+        Text(stringResource(R.string.hydration_no_history), style = NoopType.footnote, color = Palette.textTertiary)
         return
     }
     val goal = goalMl.coerceAtLeast(1).toDouble()

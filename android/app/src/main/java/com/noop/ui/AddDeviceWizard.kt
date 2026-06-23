@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -88,6 +91,8 @@ private enum class DeviceType {
     /** True for the EXPERIMENTAL tier (shown under a clearly-labelled "Experimental" heading). */
     val isExperimental: Boolean get() = this == Amazfit || this == MiBand || this == Garmin || this == Oura
 
+    // Canonical English title — used as a logic value and as the persisted name fallback (nameDraft).
+    // The localized label is resolved at the @Composable display sites via [deviceTypeTitle].
     val title: String
         get() = when (this) {
             Whoop5MG -> "WHOOP 5.0 / MG"
@@ -100,6 +105,21 @@ private enum class DeviceType {
             Oura -> "Oura ring"
         }
 }
+
+/** Localized device-type title, resolved at the display site (the enum's `title` stays English). */
+@Composable
+private fun deviceTypeTitle(type: DeviceType): String = stringResource(
+    when (type) {
+        DeviceType.Whoop5MG -> R.string.adddevice_type_whoop5
+        DeviceType.Whoop4 -> R.string.adddevice_type_whoop4
+        DeviceType.HrStrap -> R.string.adddevice_type_hrstrap
+        DeviceType.GymEquipment -> R.string.adddevice_type_gym
+        DeviceType.Amazfit -> R.string.adddevice_type_amazfit
+        DeviceType.MiBand -> R.string.adddevice_type_miband
+        DeviceType.Garmin -> R.string.adddevice_type_garmin
+        DeviceType.Oura -> R.string.adddevice_type_oura
+    }
+)
 
 private enum class WizardStep { Type, Prep, Pick, Confirm }
 
@@ -164,22 +184,23 @@ fun AddDeviceWizard(viewModel: AppViewModel, onClose: () -> Unit) {
         }
     }
 
+    val deviceFallback = stringResource(R.string.adddevice_device_fallback)
     val confirmAdvertisedName = run {
-        pickedWhoop?.let { return@run it.name?.takeIf { n -> n.isNotBlank() } ?: (type?.title ?: "Device") }
+        pickedWhoop?.let { return@run it.name?.takeIf { n -> n.isNotBlank() } ?: (type?.title ?: deviceFallback) }
         pickedStrap?.let { return@run it.name }
         pickedMachine?.let { return@run it.name }
         pickedHuami?.let { return@run it.name }
-        type?.title ?: "Device"
+        type?.title ?: deviceFallback
     }
     val confirmName = nameDraft.trim().ifEmpty { confirmAdvertisedName }
     val confirmBrand = when {
-        type?.isWhoop == true -> "WHOOP"
-        type == DeviceType.GymEquipment -> "Gym equipment"
-        type == DeviceType.Amazfit -> "Amazfit"
-        type == DeviceType.MiBand -> "Mi Band"
-        type == DeviceType.Garmin -> "Garmin"
-        pickedStrap != null -> brandGuess(pickedStrap!!.name)
-        else -> "Heart-rate strap"
+        type?.isWhoop == true -> stringResource(R.string.adddevice_brand_whoop)
+        type == DeviceType.GymEquipment -> stringResource(R.string.adddevice_brand_gym)
+        type == DeviceType.Amazfit -> stringResource(R.string.adddevice_brand_amazfit)
+        type == DeviceType.MiBand -> stringResource(R.string.adddevice_brand_miband)
+        type == DeviceType.Garmin -> stringResource(R.string.adddevice_brand_garmin)
+        pickedStrap != null -> brandGuessDisplay(pickedStrap!!.name)
+        else -> stringResource(R.string.adddevice_brand_strap)
     }
     val confirmRssi = pickedWhoop?.rssi ?: pickedStrap?.rssi ?: pickedMachine?.rssi ?: pickedHuami?.rssi ?: -70
 
@@ -275,7 +296,7 @@ fun AddDeviceWizard(viewModel: AppViewModel, onClose: () -> Unit) {
                     IconButton(onClick = { goBack() }, modifier = Modifier.size(28.dp)) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.onboarding_back),
                             tint = Palette.textSecondary,
                             modifier = Modifier.size(22.dp),
                         )
@@ -289,7 +310,7 @@ fun AddDeviceWizard(viewModel: AppViewModel, onClose: () -> Unit) {
                     }
                 }
                 IconButton(onClick = { stopAllScans(); onClose() }, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Filled.Close, contentDescription = "Close", tint = Palette.textTertiary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.adddevice_close), tint = Palette.textTertiary, modifier = Modifier.size(20.dp))
                 }
             }
         },
@@ -370,40 +391,41 @@ fun AddDeviceWizard(viewModel: AppViewModel, onClose: () -> Unit) {
         AlertDialog(
             onDismissRequest = { askMakeActive = false; finishAdd(makeActive = false) },
             containerColor = Palette.surfaceOverlay,
-            title = { Text("Make this your active device?", style = NoopType.title2, color = Palette.textPrimary) },
+            title = { Text(stringResource(R.string.adddevice_make_active_title), style = NoopType.title2, color = Palette.textPrimary) },
             text = {
                 Text(
-                    "Make $confirmName your active device now? It will provide your live data. You can change " +
-                        "this any time.",
+                    stringResource(R.string.adddevice_make_active_message, confirmName),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
             },
             confirmButton = {
                 TextButton(onClick = { askMakeActive = false; finishAdd(makeActive = true) }) {
-                    Text("Make active", style = NoopType.body, color = Palette.accent)
+                    Text(stringResource(R.string.devices_menu_make_active), style = NoopType.body, color = Palette.accent)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { askMakeActive = false; finishAdd(makeActive = false) }) {
-                    Text("Not now", style = NoopType.body, color = Palette.textSecondary)
+                    Text(stringResource(R.string.adddevice_not_now), style = NoopType.body, color = Palette.textSecondary)
                 }
             },
         )
     }
 }
 
+@Composable
 private fun headerTitle(step: WizardStep, type: DeviceType?): String = when (step) {
-    WizardStep.Type -> "Add a device"
-    WizardStep.Prep -> type?.title ?: "Add a device"
-    WizardStep.Pick -> "Pick your device"
-    WizardStep.Confirm -> "Name & confirm"
+    WizardStep.Type -> stringResource(R.string.adddevice_header_add)
+    WizardStep.Prep -> type?.let { deviceTypeTitle(it) } ?: stringResource(R.string.adddevice_header_add)
+    WizardStep.Pick -> stringResource(R.string.adddevice_header_pick)
+    WizardStep.Confirm -> stringResource(R.string.adddevice_header_confirm)
 }
 
+@Composable
 private fun headerSubtitle(step: WizardStep): String? = when (step) {
-    WizardStep.Type -> "What are you adding?"
-    WizardStep.Prep -> "Get it ready, then scan."
-    WizardStep.Pick -> "Tap the one that's yours."
+    WizardStep.Type -> stringResource(R.string.adddevice_subtitle_type)
+    WizardStep.Prep -> stringResource(R.string.adddevice_subtitle_prep)
+    WizardStep.Pick -> stringResource(R.string.adddevice_subtitle_pick)
     WizardStep.Confirm -> null
 }
 
@@ -412,33 +434,33 @@ private fun headerSubtitle(step: WizardStep): String? = when (step) {
 @Composable
 private fun TypeStep(onPick: (DeviceType) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        TypeRow(Icons.Filled.Watch, DeviceType.Whoop5MG.title, "Newer WHOOP band — experimental in NOOP") {
+        TypeRow(Icons.Filled.Watch, deviceTypeTitle(DeviceType.Whoop5MG), stringResource(R.string.adddevice_type_whoop5_sub)) {
             onPick(DeviceType.Whoop5MG)
         }
-        TypeRow(Icons.Filled.Watch, DeviceType.Whoop4.title, "NOOP's primary, fully-supported band") {
+        TypeRow(Icons.Filled.Watch, deviceTypeTitle(DeviceType.Whoop4), stringResource(R.string.adddevice_type_whoop4_sub)) {
             onPick(DeviceType.Whoop4)
         }
-        TypeRow(Icons.Filled.FavoriteBorder, DeviceType.HrStrap.title, "Polar, Wahoo, Coospo, Garmin HRM, Amazfit Helio broadcast") {
+        TypeRow(Icons.Filled.FavoriteBorder, deviceTypeTitle(DeviceType.HrStrap), stringResource(R.string.adddevice_type_hrstrap_sub)) {
             onPick(DeviceType.HrStrap)
         }
-        TypeRow(Icons.AutoMirrored.Filled.DirectionsRun, DeviceType.GymEquipment.title, "Treadmill, indoor bike, rower or cross-trainer (Bluetooth FTMS)") {
+        TypeRow(Icons.AutoMirrored.Filled.DirectionsRun, deviceTypeTitle(DeviceType.GymEquipment), stringResource(R.string.adddevice_type_gym_sub)) {
             onPick(DeviceType.GymEquipment)
         }
 
         // EXPERIMENTAL tier — clearly labelled, opt-in, best-effort. Each is honest about what it can
         // actually read; none fabricates data.
-        Overline("Experimental", modifier = Modifier.padding(top = 8.dp))
+        Overline(stringResource(R.string.adddevice_experimental_overline), modifier = Modifier.padding(top = 8.dp))
         ExperimentalTierNote()
-        TypeRow(Icons.Filled.GraphicEq, DeviceType.Amazfit.title, "Incl. Helio. Live heart rate where the band exposes it. Help us test.") {
+        TypeRow(Icons.Filled.GraphicEq, deviceTypeTitle(DeviceType.Amazfit), stringResource(R.string.adddevice_type_amazfit_sub)) {
             onPick(DeviceType.Amazfit)
         }
-        TypeRow(Icons.Filled.GraphicEq, DeviceType.MiBand.title, "Live heart rate on bands that don't need pairing. Help us test.") {
+        TypeRow(Icons.Filled.GraphicEq, deviceTypeTitle(DeviceType.MiBand), stringResource(R.string.adddevice_type_miband_sub)) {
             onPick(DeviceType.MiBand)
         }
-        TypeRow(Icons.Filled.Watch, DeviceType.Garmin.title, "Uses the watch's Broadcast Heart Rate. We'll show you how.") {
+        TypeRow(Icons.Filled.Watch, deviceTypeTitle(DeviceType.Garmin), stringResource(R.string.adddevice_type_garmin_sub)) {
             onPick(DeviceType.Garmin)
         }
-        TypeRow(Icons.Filled.FileDownload, DeviceType.Oura.title, "Live isn't available. We'll check, then point you to file import.") {
+        TypeRow(Icons.Filled.FileDownload, deviceTypeTitle(DeviceType.Oura), stringResource(R.string.adddevice_type_oura_sub)) {
             onPick(DeviceType.Oura)
         }
 
@@ -461,8 +483,7 @@ private fun ExperimentalTierNote() {
     ) {
         Icon(Icons.Filled.Science, contentDescription = null, tint = Palette.statusWarning, modifier = Modifier.size(18.dp))
         Text(
-            "Experimental, best-effort support. We're still testing these, so they might not connect on " +
-                "every device. They never make up data, and they'll tell you honestly when live isn't possible.",
+            stringResource(R.string.add_device_wizard_experimental_best_effort_support_we_re),
             style = NoopType.footnote,
             color = Palette.statusWarning,
         )
@@ -471,13 +492,14 @@ private fun ExperimentalTierNote() {
 
 @Composable
 private fun TypeRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    val rowCd = stringResource(R.string.adddevice_type_row_cd, title, subtitle)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .frostedCardSurface(cornerRadius = 14.dp)
             .clickable(onClick = onClick)
-            .semantics { contentDescription = "$title. $subtitle" }
+            .semantics { contentDescription = rowCd }
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -505,8 +527,7 @@ private fun WhoopFirstNote() {
     ) {
         Icon(Icons.Filled.FavoriteBorder, contentDescription = null, tint = Palette.textTertiary, modifier = Modifier.size(16.dp))
         Text(
-            "WHOOP is NOOP's primary, fully-supported band. Other heart-rate straps stream live heart rate " +
-                "and HRV, but not WHOOP's deeper sleep and recovery data.",
+            stringResource(R.string.adddevice_whoop_first_note),
             style = NoopType.footnote,
             color = Palette.textTertiary,
         )
@@ -531,7 +552,7 @@ private fun PrepStep(type: DeviceType, onScan: () -> Unit) {
                 tint = Palette.accent,
                 modifier = Modifier.size(28.dp),
             )
-            Text(type.title, style = NoopType.title2, color = Palette.textPrimary)
+            Text(deviceTypeTitle(type), style = NoopType.title2, color = Palette.textPrimary)
         }
 
         if (type == DeviceType.Whoop5MG) {
@@ -546,7 +567,7 @@ private fun PrepStep(type: DeviceType, onScan: () -> Unit) {
             ) {
                 Icon(Icons.Filled.Science, contentDescription = null, tint = Palette.statusWarning, modifier = Modifier.size(18.dp))
                 Text(
-                    "WHOOP 5.0 / MG support is newer and still experimental in NOOP.",
+                    stringResource(R.string.adddevice_whoop5_experimental),
                     style = NoopType.footnote,
                     color = Palette.statusWarning,
                 )
@@ -571,56 +592,59 @@ private fun PrepStep(type: DeviceType, onScan: () -> Unit) {
             }
         }
 
+        val scanCd = stringResource(R.string.adddevice_scan_cd, deviceTypeTitle(type))
         TextButton(
             onClick = onScan,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .background(Palette.accent)
-                .semantics { contentDescription = "Scan for ${type.title}" },
+                .semantics { contentDescription = scanCd },
         ) {
-            Text("Scan", style = NoopType.headline, color = Palette.goldDeepText)
+            Text(stringResource(R.string.adddevice_scan), style = NoopType.headline, color = Palette.goldDeepText)
         }
     }
 }
 
-/** Type-specific "get it ready" guidance — the point of the branching wizard. US English copy. */
+/** Type-specific "get it ready" guidance — the point of the branching wizard. Localized at the
+ *  display site. Garmin's hint comes from GarminBroadcast.broadcastHint (outside this screen). */
+@Composable
 private fun prepInstructions(type: DeviceType): List<String> = when (type) {
     DeviceType.Whoop4 -> listOf(
-        "Put your WHOOP 4.0 on your wrist and make sure it's awake.",
-        "Make sure it's NOT connected to the official WHOOP app right now.",
-        "NOOP will look for it nearby.",
+        stringResource(R.string.adddevice_prep_whoop4_1),
+        stringResource(R.string.adddevice_prep_whoop4_2),
+        stringResource(R.string.adddevice_prep_whoop4_3),
     )
     DeviceType.Whoop5MG -> listOf(
-        "WHOOP 5.0 / MG bonds to one device at a time — unpair it from the official WHOOP app first.",
-        "Put the band into pairing mode, on your wrist and awake.",
-        "NOOP will look for it nearby.",
+        stringResource(R.string.adddevice_prep_whoop5_1),
+        stringResource(R.string.adddevice_prep_whoop5_2),
+        stringResource(R.string.adddevice_prep_whoop5_3),
     )
     DeviceType.HrStrap -> listOf(
-        "Wake your strap — put it on, or dampen the contacts.",
-        "Make sure it isn't connected to another app (a bike computer, the brand's own app…).",
-        "NOOP will look for it nearby.",
+        stringResource(R.string.adddevice_prep_hrstrap_1),
+        stringResource(R.string.adddevice_prep_hrstrap_2),
+        stringResource(R.string.adddevice_prep_hrstrap_3),
     )
     DeviceType.GymEquipment -> listOf(
-        "Wake the machine — start pedalling, walking or rowing so it powers on its Bluetooth.",
-        "Make sure it isn't already connected to another app (Zwift, the gym's app, a bike computer…).",
-        "NOOP looks for machines that broadcast the standard Bluetooth Fitness Machine service.",
+        stringResource(R.string.adddevice_prep_gym_1),
+        stringResource(R.string.adddevice_prep_gym_2),
+        stringResource(R.string.adddevice_prep_gym_3),
     )
     DeviceType.Amazfit -> listOf(
-        "Wake your Amazfit / Zepp band and make sure it isn't connected to the Zepp app right now.",
-        "NOOP reads live heart rate when the band exposes it. Some bands need a pairing we can't do yet — if so, we'll say so honestly.",
-        "Experimental: this is best-effort. If live doesn't work, you can export from Zepp and import the file.",
+        stringResource(R.string.adddevice_prep_amazfit_1),
+        stringResource(R.string.adddevice_prep_amazfit_2),
+        stringResource(R.string.adddevice_prep_amazfit_3),
     )
     DeviceType.MiBand -> listOf(
-        "Wake your Mi Band and make sure it isn't connected to the Mi Fitness / Zepp Life app right now.",
-        "NOOP reads live heart rate on bands that don't require pairing. Newer bands need an auth handshake we can't do yet.",
-        "Experimental: if your band needs pairing, we'll tell you honestly rather than show a fake reading.",
+        stringResource(R.string.adddevice_prep_miband_1),
+        stringResource(R.string.adddevice_prep_miband_2),
+        stringResource(R.string.adddevice_prep_miband_3),
     )
     DeviceType.Garmin -> com.noop.ble.GarminBroadcast.broadcastHint
     DeviceType.Oura -> listOf(
-        "The Oura ring is proprietary and only syncs to the Oura app, so there's no open live stream NOOP can read.",
-        "We'll scan for your ring and check its Bluetooth services so you can see we looked.",
-        "Then we'll point you at file import, which is the honest way to get your Oura data into NOOP.",
+        stringResource(R.string.adddevice_prep_oura_1),
+        stringResource(R.string.adddevice_prep_oura_2),
+        stringResource(R.string.adddevice_prep_oura_3),
     )
 }
 
@@ -636,8 +660,8 @@ private fun WhoopPickStep(
     PickList(searching = true, isEmpty = found.isEmpty(), onRescan = onRescan) {
         found.sortedByDescending { it.rssi }.forEach { strap ->
             DiscoveredRow(
-                name = strap.name?.takeIf { it.isNotBlank() } ?: "WHOOP",
-                subtitle = "WHOOP",
+                name = strap.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.adddevice_row_whoop),
+                subtitle = stringResource(R.string.adddevice_row_whoop),
                 rssi = strap.rssi,
                 onTap = { onSelect(strap) },
             )
@@ -657,7 +681,7 @@ private fun HrPickStep(
         discovered.sortedByDescending { it.rssi }.forEach { strap ->
             DiscoveredRow(
                 name = strap.name,
-                subtitle = brandGuess(strap.name),
+                subtitle = brandGuessDisplay(strap.name),
                 rssi = strap.rssi,
                 onTap = { onSelect(strap) },
             )
@@ -677,7 +701,7 @@ private fun FtmsPickStep(
         discovered.sortedByDescending { it.rssi }.forEach { machine ->
             DiscoveredRow(
                 name = machine.name,
-                subtitle = "Gym equipment",
+                subtitle = stringResource(R.string.adddevice_row_gym),
                 rssi = machine.rssi,
                 onTap = { onSelect(machine) },
             )
@@ -697,7 +721,7 @@ private fun HuamiPickStep(
         discovered.sortedByDescending { it.rssi }.forEach { dev ->
             DiscoveredRow(
                 name = dev.name,
-                subtitle = "Experimental",
+                subtitle = stringResource(R.string.adddevice_row_experimental),
                 rssi = dev.rssi,
                 onTap = { onSelect(dev) },
             )
@@ -716,13 +740,13 @@ private fun OuraPickStep(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatePill(
-                if (scanning) "Searching…" else "Idle",
+                if (scanning) stringResource(R.string.adddevice_searching) else stringResource(R.string.adddevice_idle),
                 tone = if (scanning) StrandTone.Accent else StrandTone.Neutral,
                 pulsing = scanning,
             )
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { scanner.scan() }) {
-                Text("Rescan", style = NoopType.subhead, color = Palette.accent)
+                Text(stringResource(R.string.adddevice_rescan), style = NoopType.subhead, color = Palette.accent)
             }
         }
         val msg = deadEnd
@@ -738,14 +762,15 @@ private fun OuraPickStep(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(msg, style = NoopType.body, color = Palette.textPrimary)
+                    val useImportCd = stringResource(R.string.adddevice_use_import_cd)
                     TextButton(
                         onClick = onUseImport,
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(Palette.accent)
-                            .semantics { contentDescription = "Use file import for Oura" },
+                            .semantics { contentDescription = useImportCd },
                     ) {
-                        Text("Use file import", style = NoopType.headline, color = Palette.goldDeepText)
+                        Text(stringResource(R.string.add_device_wizard_use_file_import), style = NoopType.headline, color = Palette.goldDeepText)
                     }
                 }
             }
@@ -759,9 +784,9 @@ private fun OuraPickStep(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     CircularProgressIndicator(color = Palette.accent, modifier = Modifier.size(22.dp))
-                    Text("Searching…", style = NoopType.body, color = Palette.textPrimary)
+                    Text(stringResource(R.string.live_searching), style = NoopType.body, color = Palette.textPrimary)
                     Text(
-                        "Make sure it's awake and not connected elsewhere.",
+                        stringResource(R.string.adddevice_searching_hint),
                         style = NoopType.subhead,
                         color = Palette.textSecondary,
                     )
@@ -773,7 +798,7 @@ private fun OuraPickStep(
                     discovered.sortedByDescending { it.rssi }.forEach { ring ->
                         DiscoveredRow(
                             name = ring.name,
-                            subtitle = "Tap to check",
+                            subtitle = stringResource(R.string.adddevice_row_tap_to_check),
                             rssi = ring.rssi,
                             onTap = { scanner.probe(ring.address) },
                         )
@@ -797,13 +822,13 @@ private fun PickList(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatePill(
-                if (searching) "Searching…" else "Idle",
+                if (searching) stringResource(R.string.adddevice_searching) else stringResource(R.string.adddevice_idle),
                 tone = if (searching) StrandTone.Accent else StrandTone.Neutral,
                 pulsing = searching,
             )
             Spacer(Modifier.weight(1f))
             TextButton(onClick = onRescan) {
-                Text("Rescan", style = NoopType.subhead, color = Palette.accent)
+                Text(stringResource(R.string.adddevice_rescan), style = NoopType.subhead, color = Palette.accent)
             }
         }
         if (isEmpty) {
@@ -816,9 +841,9 @@ private fun PickList(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 CircularProgressIndicator(color = Palette.accent, modifier = Modifier.size(22.dp))
-                Text("Searching…", style = NoopType.body, color = Palette.textPrimary)
+                Text(stringResource(R.string.live_searching), style = NoopType.body, color = Palette.textPrimary)
                 Text(
-                    "Make sure it's awake and not connected elsewhere.",
+                    stringResource(R.string.adddevice_searching_hint),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
@@ -831,13 +856,14 @@ private fun PickList(
 
 @Composable
 private fun DiscoveredRow(name: String, subtitle: String, rssi: Int, onTap: () -> Unit) {
+    val rowCd = stringResource(R.string.adddevice_row_cd, name, SignalBars.level(rssi))
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .frostedCardSurface(cornerRadius = 12.dp)
             .clickable(onClick = onTap)
-            .semantics { contentDescription = "$name, signal ${SignalBars.level(rssi)} of 4" }
+            .semantics { contentDescription = rowCd }
             .padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -884,16 +910,17 @@ private fun ConfirmStep(
             }
         }
 
-        Overline("Name")
+        Overline(stringResource(R.string.adddevice_name_overline))
+        val nameCd = stringResource(R.string.adddevice_name_cd)
         OutlinedTextField(
             value = name,
             onValueChange = onName,
             singleLine = true,
-            placeholder = { Text("Device name", style = NoopType.body, color = Palette.textTertiary) },
+            placeholder = { Text(stringResource(R.string.devices_rename_field_cd), style = NoopType.body, color = Palette.textTertiary) },
             colors = wizardFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "Device name" },
+                .semantics { contentDescription = nameCd },
         )
 
         TextButton(
@@ -905,7 +932,7 @@ private fun ConfirmStep(
                 .background(if (name.trim().isNotEmpty()) Palette.accent else Palette.surfaceInset),
         ) {
             Text(
-                "Add",
+                stringResource(R.string.workouts_button_add),
                 style = NoopType.headline,
                 color = if (name.trim().isNotEmpty()) Palette.goldDeepText else Palette.textTertiary,
             )
@@ -923,3 +950,12 @@ private fun wizardFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedContainerColor = Palette.surfaceInset,
     unfocusedContainerColor = Palette.surfaceInset,
 )
+
+/** Display form of [brandGuess]: proper-noun brands stay verbatim; only the neutral "Heart-rate strap"
+ *  fallback is localized. Never use for the persisted brand value — that path keeps [brandGuess].
+ *  (Lives here because the redesign rewrote DevicesScreen, where it originally sat next to brandGuess.) */
+@Composable
+internal fun brandGuessDisplay(name: String): String {
+    val guess = brandGuess(name)
+    return if (guess == "Heart-rate strap") stringResource(R.string.devices_brand_fallback) else guess
+}

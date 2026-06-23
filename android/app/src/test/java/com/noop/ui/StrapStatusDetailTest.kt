@@ -1,7 +1,7 @@
 package com.noop.ui
 
+import com.noop.R
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -9,38 +9,41 @@ import org.junit.Test
  * precedence over bonded/connected so the user gets "Searching…" feedback the moment Re-scan is
  * tapped (issue #1). The button's `enabled = !live.scanning` relies on the same scanning flag, so
  * a regression here is the visible half of "Re-scan does nothing".
+ *
+ * Since i18n, the helper returns a @StringRes id rather than the literal copy; the localized text
+ * lives in strings.xml / values-de. The assertions below pin the branch→resource mapping.
  */
 class StrapStatusDetailTest {
 
     @Test
     fun scanning_takesPrecedence_overEveryOtherState() {
-        // Even when already bonded + connected, an active scan must say "Searching…".
-        assertTrue(
-            strapStatusDetail(bonded = true, connected = true, scanning = true)
-                .startsWith("Searching for your WHOOP"),
+        // Even when already bonded + connected, an active scan must map to the searching copy.
+        assertEquals(
+            R.string.settings_strap_detail_searching,
+            strapStatusDetail(bonded = true, connected = true, scanning = true),
         )
-        assertTrue(
-            strapStatusDetail(bonded = false, connected = false, scanning = true)
-                .startsWith("Searching for your WHOOP"),
+        assertEquals(
+            R.string.settings_strap_detail_searching,
+            strapStatusDetail(bonded = false, connected = false, scanning = true),
         )
     }
 
     @Test
     fun nonScanning_branches_areUnchanged() {
         assertEquals(
-            "Your strap is paired and sending data. Open Live for a real-time heart rate.",
+            R.string.settings_strap_detail_streaming,
             strapStatusDetail(bonded = true, connected = true, scanning = false),
         )
         assertEquals(
-            "Connected. Finishing the secure pairing handshake…",
+            R.string.settings_strap_detail_connecting,
             strapStatusDetail(bonded = false, connected = true, scanning = false),
         )
         assertEquals(
-            "Previously paired but not currently connected. Re-scan to reconnect.",
+            R.string.settings_strap_detail_bonded_idle,
             strapStatusDetail(bonded = true, connected = false, scanning = false),
         )
         assertEquals(
-            "No strap connected. Put your WHOOP nearby and tap Re-scan to pair.",
+            R.string.settings_strap_detail_disconnected,
             strapStatusDetail(bonded = false, connected = false, scanning = false),
         )
     }

@@ -2,6 +2,9 @@
 
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -89,8 +92,8 @@ fun UpdatesInboxScreen(
     ) {
         // Header — "INBOX" overline + "Updates" title + a live subtitle.
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Overline("Inbox", color = Palette.textTertiary)
-            Text("Updates", style = NoopType.title1, color = Palette.textPrimary)
+            Overline(stringResource(R.string.updates_inbox_overline), color = Palette.textTertiary)
+            Text(stringResource(R.string.updates_inbox_updates), style = NoopType.title1, color = Palette.textPrimary)
             Text(subtitle(store), style = NoopType.caption, color = Palette.textSecondary)
         }
 
@@ -99,7 +102,7 @@ fun UpdatesInboxScreen(
         } else {
             if (unread.isNotEmpty()) {
                 InboxSection(
-                    label = "New",
+                    label = stringResource(R.string.updates_inbox_section_new),
                     items = unread,
                     onTap = { handleTap(it, store, onDeepLink, onClose) },
                     onRestore = { handleRestore(it, store, onRestore, onClose) },
@@ -109,7 +112,7 @@ fun UpdatesInboxScreen(
             }
             if (read.isNotEmpty()) {
                 InboxSection(
-                    label = "Earlier",
+                    label = stringResource(R.string.updates_inbox_section_earlier),
                     items = read,
                     onTap = { handleTap(it, store, onDeepLink, onClose) },
                     onRestore = { handleRestore(it, store, onRestore, onClose) },
@@ -134,7 +137,7 @@ fun UpdatesInboxScreen(
                         modifier = Modifier.size(Metrics.iconSmall),
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Clear all", style = NoopType.subhead, color = Palette.textSecondary)
+                    Text(stringResource(R.string.updates_inbox_clear_all), style = NoopType.subhead, color = Palette.textSecondary)
                 }
                 Spacer(Modifier.weight(1f))
                 Button(
@@ -157,17 +160,19 @@ fun UpdatesInboxScreen(
                         modifier = Modifier.size(Metrics.iconSmall),
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Mark all read", style = NoopType.subhead)
+                    Text(stringResource(R.string.updates_inbox_mark_all_read), style = NoopType.subhead)
                 }
             }
         }
     }
 }
 
+@Composable
 private fun subtitle(store: UpdateStore): String {
-    if (store.items.isEmpty()) return "What's new in the app and your data"
+    if (store.items.isEmpty()) return stringResource(R.string.updates_inbox_subtitle_whats_new)
     val n = store.unreadCount
-    return if (n == 0) "All caught up" else "$n unread"
+    return if (n == 0) stringResource(R.string.updates_inbox_subtitle_caught_up)
+    else stringResource(R.string.updates_inbox_subtitle_unread, n)
 }
 
 @Composable
@@ -270,7 +275,7 @@ private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
                     tint = contentColor,
                     modifier = Modifier.size(Metrics.iconSmall),
                 )
-                Text("Mark read", style = NoopType.subhead, color = contentColor)
+                Text(stringResource(R.string.updates_inbox_mark_read), style = NoopType.subhead, color = contentColor)
             }
         }
     }
@@ -283,6 +288,11 @@ private fun UpdateRow(
     onRestore: () -> Unit,
 ) {
     val tint = kindTint(item.kind)
+    val rowCd = if (item.read) {
+        stringResource(R.string.updates_inbox_cd_read, item.title, item.message)
+    } else {
+        stringResource(R.string.updates_inbox_cd_unread_prefix, item.title, item.message)
+    }
     NoopCard(
         // Unread rows carry the kind's colour wash; read rows sit on the plain navy fill.
         tint = if (item.read) null else tint,
@@ -294,11 +304,7 @@ private fun UpdateRow(
                 onClick = onTap,
             )
             .semantics {
-                contentDescription = if (item.read) {
-                    "${item.title}. ${item.message}"
-                } else {
-                    "Unread. ${item.title}. ${item.message}"
-                }
+                contentDescription = rowCd
             },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -354,7 +360,7 @@ private fun UpdateRow(
                             modifier = Modifier.size(Metrics.iconSmall),
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Restore to Today", style = NoopType.subhead, color = Palette.accent)
+                        Text(stringResource(R.string.updates_inbox_restore_to_today), style = NoopType.subhead, color = Palette.accent)
                     }
                 }
             }
@@ -377,9 +383,9 @@ private fun EmptyInboxState() {
             tint = Palette.textTertiary,
             modifier = Modifier.size(34.dp),
         )
-        Text("You're all caught up.", style = NoopType.headline, color = Palette.textPrimary)
+        Text(stringResource(R.string.updates_inbox_you_re_all_caught_up), style = NoopType.headline, color = Palette.textPrimary)
         Text(
-            "New release notes and fresh data will land here.",
+            stringResource(R.string.updates_inbox_new_release_notes_and_fresh),
             style = NoopType.subhead,
             color = Palette.textSecondary,
         )

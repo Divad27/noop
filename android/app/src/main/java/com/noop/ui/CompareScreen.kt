@@ -1,5 +1,7 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -124,8 +126,14 @@ data class CompareMetric(
  * [DailyMetric] so a my-whoop metric can be derived from the daily cache as a fallback.
  */
 private object CompareCatalog {
+    // i18n: `categories` are data-layer keys (drive inCategory / the add-menu grouping); the
+    // user-visible category label is localized at the @Composable render point via
+    // [compareCategoryLabel] (R.string.compare_cat_*). Canonical English kept here.
     val categories = listOf("Heart", "Charge", "Rest", "Effort", "Health", "Nutrition", "Mind")
 
+    // i18n: each CompareMetric `title` is a canonical-English label; the displayed title is
+    // localized at the @Composable render point (add-menu, chips, legend, correlation copy)
+    // via [compareMetricTitle] (R.string.compare_metric_*). `key`/`source` stay verbatim (data ids).
     val all: List<CompareMetric> = listOf(
         // Heart
         CompareMetric("avg_hr", "Average Heart Rate", "Heart", "bpm", "my-whoop", 0),
@@ -195,20 +203,98 @@ private object CompareCatalog {
     }
 }
 
+// MARK: - Localized labels for catalog categories + metric titles
+//
+// The catalog stores canonical-English `category`/`title` as data-layer keys (used by
+// inCategory / byKey / the engine copy). These @Composable resolvers map each to its
+// existing R.string.* so the displayed label follows the device language (Model 1).
+
+/** Localized display label for a catalog category key (R.string.compare_cat_*). */
+@Composable
+private fun compareCategoryLabel(category: String): String = when (category) {
+    "Heart" -> stringResource(R.string.compare_cat_heart)
+    "Charge" -> stringResource(R.string.compare_cat_charge)
+    "Rest" -> stringResource(R.string.compare_cat_rest)
+    "Effort" -> stringResource(R.string.compare_cat_effort)
+    "Health" -> stringResource(R.string.compare_cat_health)
+    "Nutrition" -> stringResource(R.string.compare_cat_nutrition)
+    "Mind" -> stringResource(R.string.compare_cat_mind)
+    else -> category
+}
+
+/** Localized display title for a catalog metric, keyed on its stable [CompareMetric.key]
+ *  (R.string.compare_metric_*). Falls back to the canonical English `title` if unmapped. */
+@Composable
+private fun compareMetricTitle(metric: CompareMetric): String = when (metric.key) {
+    // Heart
+    "avg_hr" -> stringResource(R.string.compare_metric_avg_hr)
+    "max_hr" -> stringResource(R.string.compare_metric_max_hr)
+    "energy_kcal" -> stringResource(R.string.compare_metric_calories)
+    "vo2max" -> stringResource(R.string.compare_metric_vo2max)
+    "fitness_age" -> stringResource(R.string.compare_metric_fitness_age)
+    "vo2max_est" -> stringResource(R.string.compare_metric_vo2max_est)
+    "vitality" -> stringResource(R.string.compare_metric_vitality)
+    "body_age" -> stringResource(R.string.compare_metric_body_age)
+    // Charge
+    "recovery" -> stringResource(R.string.compare_metric_recovery)
+    "hrv" -> stringResource(R.string.compare_metric_hrv)
+    "rhr" -> stringResource(R.string.compare_metric_rhr)
+    "resp_rate" -> stringResource(R.string.compare_metric_resp_rate)
+    "spo2" -> stringResource(R.string.compare_metric_spo2)
+    "skin_temp" -> stringResource(R.string.compare_metric_skin_temp)
+    // Rest
+    "sleep_performance" -> stringResource(R.string.compare_metric_sleep_performance)
+    "sleep_total_min" -> stringResource(R.string.compare_metric_sleep_total)
+    "sleep_efficiency" -> stringResource(R.string.compare_metric_sleep_efficiency)
+    "sleep_deep_min" -> stringResource(R.string.compare_metric_sleep_deep)
+    "sleep_rem_min" -> stringResource(R.string.compare_metric_sleep_rem)
+    "sleep_light_min" -> stringResource(R.string.compare_metric_sleep_light)
+    // Effort
+    "strain" -> stringResource(R.string.compare_metric_strain)
+    "steps" -> stringResource(R.string.compare_metric_steps)
+    "steps_est" -> stringResource(R.string.compare_metric_steps_est)
+    "active_kcal" -> stringResource(R.string.compare_metric_active_kcal)
+    // Health
+    "weight" -> stringResource(R.string.compare_metric_weight)
+    "body_fat" -> stringResource(R.string.compare_metric_body_fat)
+    "lean_mass" -> stringResource(R.string.compare_metric_lean_mass)
+    "bmi" -> stringResource(R.string.compare_metric_bmi)
+    // Nutrition
+    "calories_in" -> stringResource(R.string.compare_metric_calories_in)
+    "protein_g" -> stringResource(R.string.compare_metric_protein)
+    "carbs_g" -> stringResource(R.string.compare_metric_carbs)
+    "fat_g" -> stringResource(R.string.compare_metric_fat)
+    // Mind
+    "mood" -> stringResource(R.string.compare_metric_mood)
+    else -> metric.title
+}
+
 // MARK: - Range control (shared spec — W / M / 3M / 6M / 1Y / ALL)
 
-/** The canonical Strand range window. [days] == null means ALL of history. */
-private enum class CompareRange(val label: String, val days: Int?, val phrase: String) {
-    Week("W", 7, "the last 7 days"),
-    Month("M", 30, "30 days"),
-    Quarter("3M", 90, "3 months"),
-    Half("6M", 180, "6 months"),
-    Year("1Y", 365, "1 year"),
-    All("ALL", null, "all history");
+/** The canonical Strand range window. [days] == null means ALL of history. The [label] codes
+ *  (W / M / 3M / 6M / 1Y / ALL) are symbolic axis abbreviations kept verbatim across locales. */
+private enum class CompareRange(val label: String, val days: Int?) {
+    Week("W", 7),
+    Month("M", 30),
+    Quarter("3M", 90),
+    Half("6M", 180),
+    Year("1Y", 365),
+    All("ALL", null);
 
     /** This range plus every LARGER range, ascending — the auto-expand search order. */
     val widening: List<CompareRange>
         get() = entries.subList(ordinal, entries.size)
+}
+
+/** Localized human phrase for a range ("the last 7 days" …). @Composable so it reads the resource. */
+@Composable
+private fun CompareRange.phrase(): String = when (this) {
+    CompareRange.Week -> stringResource(R.string.compare_range_phrase_week)
+    CompareRange.Month -> stringResource(R.string.compare_range_phrase_month)
+    CompareRange.Quarter -> stringResource(R.string.compare_range_phrase_quarter)
+    CompareRange.Half -> stringResource(R.string.compare_range_phrase_half)
+    CompareRange.Year -> stringResource(R.string.compare_range_phrase_year)
+    CompareRange.All -> stringResource(R.string.compare_range_phrase_all)
 }
 
 // MARK: - Per-series model
@@ -387,26 +473,26 @@ fun CompareScreen(vm: AppViewModel) {
         full.isNotEmpty() && effectiveRange(full) != range
     }
 
-    val rangeCaption: String = run {
-        val total = activeSeries.sumOf { it.rows.size }
-        val unit = if (total == 1) "reading" else "readings"
-        val base = "$total $unit across ${activeSeries.size} · ${range.phrase}"
-        if (anyWidened) "$base · sparse widened" else base
-    }
+    val total = activeSeries.sumOf { it.rows.size }
+    // Existing key (prior pass): "%1$d readings across %2$d · %3$s" — fixed plural, 3 args.
+    val rangeBase = stringResource(R.string.compare_range_caption, total, activeSeries.size, range.phrase())
+    val sparseWidened = stringResource(R.string.compare_sparse_widened)
+    val rangeCaption: String = if (anyWidened) "$rangeBase · $sparseWidened" else rangeBase
 
-    LazyScreenScaffold(title = "Compare", subtitle = "Overlay signals, draw conclusions.") {
+    LazyScreenScaffold(title = stringResource(R.string.compare_title), subtitle = stringResource(R.string.compare_subtitle)) {
 
         // ── Metric picker section (chips + range control)
         item {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-            SectionHeader("Metrics", overline = "Overlay 2–4 signals")
+            SectionHeader(stringResource(R.string.compare_metrics_header), overline = stringResource(R.string.compare_metrics_overline))
             NoopCard {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val rangeLabels = rememberRangeShortLabels(CompareRange.entries.toList()) { it.label }
                         SegmentedPillControl(
                             items = CompareRange.entries.toList(),
                             selection = range,
-                            label = { it.label },
+                            label = { rangeLabels.getValue(it) },
                             onSelect = { range = it },
                         )
                         Spacer(Modifier.weight(1f))
@@ -435,7 +521,7 @@ fun CompareScreen(vm: AppViewModel) {
 
                     if (selected.isEmpty()) {
                         Text(
-                            "Nothing selected yet.",
+                            stringResource(R.string.compare_nothing_selected),
                             style = NoopType.subhead,
                             color = Palette.textTertiary,
                         )
@@ -456,7 +542,7 @@ fun CompareScreen(vm: AppViewModel) {
 
         if (selected.size < minSelection) {
             item {
-                EmptyNote("Pick at least two metrics above to overlay them and read how they move together.")
+                EmptyNote(stringResource(R.string.compare_pick_two))
             }
         } else {
             val nonEmpty = activeSeries.filter { it.rows.isNotEmpty() }
@@ -464,13 +550,12 @@ fun CompareScreen(vm: AppViewModel) {
                 if (loadedOnce) {
                     item {
                         DataPendingNote(
-                            title = "Compare needs at least two metrics with history",
-                            body = "Compare needs at least two metrics with history. Import your " +
-                                "WHOOP export in Data Sources first.",
+                            title = stringResource(R.string.compare_needs_history_title),
+                            body = stringResource(R.string.compare_needs_history_body),
                         )
                     }
                 } else {
-                    item { EmptyNote("Reading your history…") }
+                    item { EmptyNote(stringResource(R.string.compare_reading_history)) }
                 }
             } else {
                 item { OverlaySection(nonEmpty, range, anyWidened) }
@@ -537,12 +622,12 @@ private fun AddMetricMenu(
         ) {
             Icon(
                 Icons.Filled.Add,
-                contentDescription = "Add a metric to compare",
+                contentDescription = stringResource(R.string.compare_add_metric_cd),
                 tint = tint,
                 modifier = Modifier.size(16.dp),
             )
             Text(
-                if (atMax) "Max 4" else "Add metric",
+                if (atMax) stringResource(R.string.compare_max_4) else stringResource(R.string.compare_add_metric),
                 style = NoopType.subhead,
                 color = tint,
             )
@@ -557,7 +642,7 @@ private fun AddMetricMenu(
                 val metrics = CompareCatalog.inCategory(category)
                 if (metrics.isNotEmpty()) {
                     Text(
-                        category.uppercase(),
+                        compareCategoryLabel(category).uppercase(),
                         style = NoopType.overline,
                         color = Palette.textTertiary,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -582,7 +667,7 @@ private fun AddMetricMenu(
                             },
                             text = {
                                 Text(
-                                    metric.title,
+                                    compareMetricTitle(metric),
                                     style = NoopType.body,
                                     color = if (enabled) Palette.textPrimary else Palette.textTertiary,
                                 )
@@ -611,7 +696,7 @@ private fun FlowChips(
                 rowChips.forEach { metric ->
                     MetricChip(
                         modifier = Modifier.weight(1f),
-                        title = metric.title,
+                        title = compareMetricTitle(metric),
                         color = colorFor(metric),
                         onRemove = { onRemove(metric) },
                     )
@@ -655,7 +740,7 @@ private fun MetricChip(
         )
         Icon(
             Icons.Filled.Close,
-            contentDescription = "Remove $title",
+            contentDescription = stringResource(R.string.compare_remove_cd, title),
             tint = Palette.textTertiary,
             modifier = Modifier
                 .size(18.dp)
@@ -675,17 +760,17 @@ private fun OverlaySection(
     anyWidened: Boolean,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Overlay", overline = range.phrase, trailing = "${series.size} series")
+        SectionHeader(stringResource(R.string.compare_overlay_header), overline = range.phrase(), trailing = stringResource(R.string.compare_series_count, series.size))
         // Anchor the overlay card to the brand-green chrome world; each line keeps its own categorical
         // series colour so the overlaid lines stay distinguishable against the wash.
         NoopCard(tint = Palette.accent) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Overline("Normalized overlay")
+                Overline(stringResource(R.string.compare_normalized_overline))
                 Text(
                     if (anyWidened) {
-                        "Each line min–max normalized · sparse series widened past ${range.phrase}"
+                        stringResource(R.string.compare_normalized_widened, range.phrase())
                     } else {
-                        "Each line min–max normalized within ${range.phrase}"
+                        stringResource(R.string.compare_normalized_within, range.phrase())
                     },
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
@@ -700,9 +785,9 @@ private fun OverlaySection(
 
                 // Endpoint axis labels (low / high), mirroring the normalized macOS y-axis.
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Text("low", style = NoopType.footnote, color = Palette.textTertiary)
+                    Text(stringResource(R.string.compare_axis_low), style = NoopType.footnote, color = Palette.textTertiary)
                     Spacer(Modifier.weight(1f))
-                    Text("high", style = NoopType.footnote, color = Palette.textTertiary)
+                    Text(stringResource(R.string.compare_axis_high), style = NoopType.footnote, color = Palette.textTertiary)
                 }
 
                 HorizontalDivider(color = Palette.hairline)
@@ -852,7 +937,7 @@ private fun Legend(series: List<CompareSeries>) {
                         .background(s.color),
                 )
                 Text(
-                    s.metric.title,
+                    compareMetricTitle(s.metric),
                     style = NoopType.subhead,
                     color = Palette.textPrimary,
                     maxLines = 1,
@@ -910,15 +995,15 @@ private fun CorrelationSection(series: List<CompareSeries>, range: CompareRange)
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         SectionHeader(
-            "How They Move Together",
-            overline = "Pearson r · ${range.phrase}",
-            trailing = if (pairs.isEmpty()) null else "${pairs.size} pairs",
+            stringResource(R.string.compare_move_together_header),
+            overline = stringResource(R.string.compare_pearson_overline, range.phrase()),
+            trailing = if (pairs.isEmpty()) null else stringResource(R.string.compare_pairs_count, pairs.size),
         )
 
         if (pairs.isEmpty()) {
             NoopCard {
                 Text(
-                    "Not enough overlapping days between these metrics in ${range.phrase}. Widen the range.",
+                    stringResource(R.string.compare_not_enough_overlap, range.phrase()),
                     style = NoopType.subhead,
                     color = Palette.textTertiary,
                 )
@@ -945,7 +1030,7 @@ private fun PairCard(p: PairResult) {
                     Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(p.b.color))
                 }
                 Text(
-                    "${p.a.metric.title} ↔ ${p.b.metric.title}",
+                    stringResource(R.string.compare_pair_title, compareMetricTitle(p.a.metric), compareMetricTitle(p.b.metric)),
                     style = NoopType.headline,
                     color = Palette.textPrimary,
                     maxLines = 2,
@@ -953,13 +1038,13 @@ private fun PairCard(p: PairResult) {
                     modifier = Modifier.weight(1f),
                 )
                 TrendChip(text = signedR(p.r), color = tint)
-                Text("r = ${signedR(p.r)}", style = NoopType.number(18f), color = tint)
+                Text(stringResource(R.string.compare_r_value, signedR(p.r)), style = NoopType.number(18f), color = tint)
             }
 
             Text(insightSentence(p), style = NoopType.subhead, color = Palette.textSecondary)
 
             Text(
-                "${p.n} overlapping days · ${strengthWord(p.r)} ${directionWord(p.r)} correlation"
+                stringResource(R.string.compare_pair_footnote, p.n, strengthWord(p.r), directionWord(p.r))
                     .replace("  ", " "),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
@@ -970,17 +1055,23 @@ private fun PairCard(p: PairResult) {
 
 // MARK: - Insight language (ported from CompareView)
 
+@Composable
 private fun insightSentence(p: PairResult): String {
-    val head = ("${p.a.metric.title} ↔ ${p.b.metric.title}: r = ${signedR(p.r)} " +
-        "(${strengthWord(p.r)} ${directionWord(p.r)}) over ${p.n} shared days.")
-        .replace("  ", " ").replace(" )", ")")
+    // Existing keys (prior pass): _head (6 args) and _link (5 args) are self-contained sentences with
+    // no leading space; we join with a single space. _none is local to this GID (no leading space).
+    val aTitle = compareMetricTitle(p.a.metric)
+    val bTitle = compareMetricTitle(p.b.metric)
+    val head = stringResource(
+        R.string.compare_insight_head,
+        aTitle, bTitle, signedR(p.r), strengthWord(p.r), directionWord(p.r), p.n,
+    ).replace("  ", " ").replace(" )", ")")
     if (abs(p.r) < 0.3) {
-        return "$head No clear relationship — they move largely independently."
+        return head + " " + stringResource(R.string.compare_insight_none)
     }
-    val aT = p.a.metric.title.lowercase()
-    val bT = p.b.metric.title.lowercase()
-    val verb = if (p.r < 0) "tends to fall" else "tends to rise"
-    return "$head When $aT rises, $bT $verb — a ${strengthWord(p.r)} ${directionWord(p.r)} link."
+    val aT = aTitle.lowercase()
+    val bT = bTitle.lowercase()
+    val verb = if (p.r < 0) stringResource(R.string.compare_verb_fall) else stringResource(R.string.compare_verb_rise)
+    return head + " " + stringResource(R.string.compare_insight_link, aT, bT, verb, strengthWord(p.r), directionWord(p.r))
 }
 
 private fun signedR(r: Double): String {
@@ -988,20 +1079,22 @@ private fun signedR(r: Double): String {
     return sign + java.lang.String.format(Locale.US, "%.2f", abs(r))
 }
 
+@Composable
 private fun strengthWord(r: Double): String {
     val a = abs(r)
     return when {
-        a < 0.1 -> "negligible"
-        a < 0.3 -> "weak"
-        a < 0.5 -> "moderate"
-        a < 0.7 -> "strong"
-        else -> "very strong"
+        a < 0.1 -> stringResource(R.string.compare_strength_negligible)
+        a < 0.3 -> stringResource(R.string.compare_strength_weak)
+        a < 0.5 -> stringResource(R.string.compare_strength_moderate)
+        a < 0.7 -> stringResource(R.string.compare_strength_strong)
+        else -> stringResource(R.string.compare_strength_very_strong)
     }
 }
 
+@Composable
 private fun directionWord(r: Double): String {
     if (abs(r) < 0.1) return ""
-    return if (r >= 0) "positive" else "negative"
+    return if (r >= 0) stringResource(R.string.compare_direction_positive) else stringResource(R.string.compare_direction_negative)
 }
 
 private fun correlationColor(r: Double): Color {

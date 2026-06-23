@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,25 +71,25 @@ fun SupportScreen() {
     var copied by remember { mutableStateOf<String?>(null) }
 
     ScreenScaffold(
-        title = "Support",
-        subtitle = "NOOP is free and always will be. If it's useful to you, you can chip in to help with development and testing costs. Totally optional.",
+        title = stringResource(R.string.support_title),
+        subtitle = stringResource(R.string.support_subtitle),
     ) {
         // --- Support the build (donate) ---
-        SectionHeader("Support the build", overline = "Optional")
+        SectionHeader(stringResource(R.string.support_section_build), overline = stringResource(R.string.support_overline_optional))
 
         // Donate — tinted to the support (rose) world.
         NoopCard(padding = 20.dp, tint = Palette.metricRose) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     GlyphChip(Icons.Filled.Favorite, Palette.metricRose)
-                    Text("Support the build", style = NoopType.headline, color = Palette.textPrimary)
+                    Text(stringResource(R.string.support_build_card_title), style = NoopType.headline, color = Palette.textPrimary)
                 }
                 Text(
-                    "NOOP is free and always will be, nothing is locked. It cost real money and a lot of unpaid hours to build, and there are Windows and iOS builds I want to ship next. If it's useful to you and you want to help with the development and testing costs, even a few quid in crypto genuinely keeps it moving, and honestly it keeps me motivated to keep building.",
+                    stringResource(R.string.support_build_body),
                     style = NoopType.subhead, color = Palette.textSecondary,
                 )
                 Text(
-                    "I keep this project anonymous, so crypto is the only way to chip in — no Patreon, no PayPal, no name attached. Quick, global, and private for both of us.",
+                    stringResource(R.string.support_anonymous_note),
                     style = NoopType.footnote, color = Palette.accent,
                 )
                 Column {
@@ -114,16 +117,16 @@ fun SupportScreen() {
         }
 
         // --- Help & Contact ---
-        SectionHeader("Help & Contact", overline = "Get in touch")
+        SectionHeader(stringResource(R.string.support_section_help), overline = stringResource(R.string.support_overline_contact))
 
         // Contact — a frosted row with a tinted glyph chip.
         NoopCard(padding = 18.dp) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 GlyphChip(Icons.Filled.Email, Palette.accent)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Get in touch", style = NoopType.headline, color = Palette.textPrimary)
+                    Text(stringResource(R.string.support_contact_title), style = NoopType.headline, color = Palette.textPrimary)
                     Text(
-                        "Questions, feedback, bugs — thenoopapp@gmail.com",
+                        stringResource(R.string.support_contact_detail),
                         style = NoopType.subhead, color = Palette.textSecondary,
                     )
                 }
@@ -135,10 +138,10 @@ fun SupportScreen() {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     GlyphChip(Icons.Filled.VolunteerActivism, Palette.accent)
-                    Text("Built on", style = NoopType.headline, color = Palette.textPrimary)
+                    Text(stringResource(R.string.settings_built_on), style = NoopType.headline, color = Palette.textPrimary)
                 }
                 Text(
-                    "This stands on community reverse-engineering. Huge thanks:",
+                    stringResource(R.string.support_built_on_body),
                     style = NoopType.subhead, color = Palette.textSecondary,
                 )
                 attributions.forEachIndexed { idx, a ->
@@ -171,7 +174,7 @@ fun SupportScreen() {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Filled.Info, contentDescription = null, tint = Palette.textTertiary)
                 Text(
-                    "Not affiliated with, endorsed by, or connected to WHOOP. Interoperability software for your own device and data. Not a medical device.",
+                    stringResource(R.string.support_disclaimer),
                     style = NoopType.footnote, color = Palette.textTertiary,
                 )
             }
@@ -225,7 +228,7 @@ private fun AddressRow(coin: CryptoAddress, copied: Boolean, onCopy: () -> Unit)
         IconButton(onClick = onCopy) {
             Icon(
                 if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
-                contentDescription = "Copy ${coin.name} address",
+                contentDescription = stringResource(R.string.support_copy_address_cd, coin.name),
                 tint = Palette.accent,
             )
         }

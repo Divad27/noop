@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -77,6 +78,7 @@ import com.noop.analytics.AnalyticsEngine
 import com.noop.analytics.SleepDebt
 import com.noop.analytics.SleepDebtLedger
 import com.noop.analytics.SleepStageTotals
+import com.noop.R
 import com.noop.data.DailyMetric
 import com.noop.data.SleepSession
 import kotlinx.coroutines.launch
@@ -246,9 +248,9 @@ fun SleepScreen(
                 modifier = Modifier.fillMaxWidth().padding(Metrics.space24),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space16),
             ) {
-                Text("Good morning!", style = NoopType.title2, color = Palette.textPrimary)
+                Text(stringResource(R.string.sleep_journal_good_morning), style = NoopType.title2, color = Palette.textPrimary)
                 Text(
-                    "Your night data is in. Logging how you felt helps NOOP learn what drives your best recovery.",
+                    stringResource(R.string.sleep_journal_prompt_body),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
@@ -257,13 +259,13 @@ fun SleepScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Palette.accent),
                 ) {
-                    Text("Open Journal", style = NoopType.headline, color = Palette.surfaceBase)
+                    Text(stringResource(R.string.sleep_journal_open), style = NoopType.headline, color = Palette.surfaceBase)
                 }
                 TextButton(
                     onClick = { showJournalPrompt = false },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Maybe later", style = NoopType.subhead, color = Palette.textTertiary)
+                    Text(stringResource(R.string.sleep_journal_maybe_later), style = NoopType.subhead, color = Palette.textTertiary)
                 }
             }
         }
@@ -320,7 +322,10 @@ fun SleepScreen(
         if (dayIdx >= 0) nightOffset = dayIdx
     }
 
-    LazyScreenScaffold(title = "Sleep", subtitle = "Last night, read in two seconds.") {
+    LazyScreenScaffold(
+        title = stringResource(R.string.sleep_screen_title),
+        subtitle = stringResource(R.string.sleep_screen_subtitle),
+    ) {
         if (model == null && night == null) {
             // While the strap is mid-offload, say so — "No nights" reads as final otherwise (#77).
             item {
@@ -451,18 +456,24 @@ fun SleepScreen(
 @Composable
 private fun SleepMarkCard(onMark: (SleepMarkType) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader(title = "Sleep marks", overline = "Tap to log", trailing = "Phase 1")
+        SectionHeader(
+            title = stringResource(R.string.sleep_marks_title),
+            overline = stringResource(R.string.sleep_marks_overline),
+            trailing = stringResource(R.string.sleep_marks_trailing),
+        )
         NoopCard(tint = Palette.restColor) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Tap when you're heading to bed or when you wake. Each tap is logged with the time — it doesn't change tonight's detected sleep.",
+                    stringResource(R.string.sleep_tap_when_you_re_heading),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
+                val cdLogBed = stringResource(R.string.sleep_cd_log_going_to_sleep)
+                val cdLogWake = stringResource(R.string.sleep_cd_log_waking_up)
                 Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
                     Button(
                         onClick = { onMark(SleepMarkType.BEDTIME) },
-                        modifier = Modifier.weight(1f).semantics { contentDescription = "Log going to sleep" },
+                        modifier = Modifier.weight(1f).semantics { contentDescription = cdLogBed },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Palette.surfaceInset,
                             contentColor = Palette.textPrimary,
@@ -470,11 +481,11 @@ private fun SleepMarkCard(onMark: (SleepMarkType) -> Unit) {
                     ) {
                         Icon(Icons.Filled.Bedtime, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Going to sleep", style = NoopType.subhead)
+                        Text(stringResource(R.string.sleep_going_to_sleep), style = NoopType.subhead)
                     }
                     Button(
                         onClick = { onMark(SleepMarkType.WAKE) },
-                        modifier = Modifier.weight(1f).semantics { contentDescription = "Log waking up" },
+                        modifier = Modifier.weight(1f).semantics { contentDescription = cdLogWake },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Palette.surfaceInset,
                             contentColor = Palette.textPrimary,
@@ -482,7 +493,7 @@ private fun SleepMarkCard(onMark: (SleepMarkType) -> Unit) {
                     ) {
                         Icon(Icons.Filled.WbSunny, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("I'm awake", style = NoopType.subhead)
+                        Text(stringResource(R.string.sleep_i_m_awake), style = NoopType.subhead)
                     }
                 }
             }
@@ -501,7 +512,11 @@ private fun SleepMarkCard(onMark: (SleepMarkType) -> Unit) {
 @Composable
 private fun RestHero(score: Double?, asleepMin: Double?, source: String) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Sleep performance", overline = "Last night", trailing = "Rest")
+        SectionHeader(
+            stringResource(R.string.sleep_performance_title),
+            overline = stringResource(R.string.sleep_overline_last_night),
+            trailing = stringResource(R.string.sleep_rest),
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -523,8 +538,8 @@ private fun RestHero(score: Double?, asleepMin: Double?, source: String) {
                         stops = Palette.restGradientStops,
                         tipColor = Palette.restColor,
                         numberText = "${score.roundToInt()}",
-                        captionText = "of 100",
-                        stateText = sleepScoreWord(score),
+                        captionText = stringResource(R.string.sleep_of_100),
+                        stateText = sleepScoreWordLabel(score),
                         diameter = 184.dp,
                         lineWidth = 15.dp,
                     )
@@ -543,21 +558,42 @@ private fun RestHero(score: Double?, asleepMin: Double?, source: String) {
                             style = NoopType.number(46f),
                             color = Palette.restBright,
                         )
-                        Text("asleep last night", style = NoopType.subhead, color = Palette.textSecondary)
+                        Text(stringResource(R.string.sleep_asleep_last_night), style = NoopType.subhead, color = Palette.textSecondary)
                     }
                 }
-                SourceBadge(text = source, tint = Palette.restColor)
+                SourceBadge(text = restHeroSourceLabel(source), tint = Palette.restColor)
             }
         }
     }
 }
 
-/** A short Rest state word for the hero gauge — same banding the synthesis hero uses. */
+/** A short Rest state word for the hero gauge — same banding the synthesis hero uses. Canonical en-US
+ *  banding kept here (logic); the DISPLAY is localized by [sleepScoreWordLabel] at the render site. */
 private fun sleepScoreWord(score: Double): String = when {
     score < 50.0 -> "Poor"
     score < 70.0 -> "Fair"
     score < 85.0 -> "Good"
     else -> "Optimal"
+}
+
+/** Localized DISPLAY of the hero state word, resolved from the [sleepScoreWord] banding. Mirrors the
+ *  daySourceLabel producer-vs-display split: the banding stays canonical, only the word is German. */
+@Composable
+private fun sleepScoreWordLabel(score: Double): String = when (sleepScoreWord(score)) {
+    "Poor" -> stringResource(R.string.sleep_score_word_poor)
+    "Fair" -> stringResource(R.string.sleep_score_word_fair)
+    "Good" -> stringResource(R.string.sleep_score_word_good)
+    else -> stringResource(R.string.sleep_score_word_optimal)
+}
+
+/** Localized DISPLAY of the rest-hero provenance word ("Whoop"/"On-device" from [restHeroSource], the
+ *  shared non-@Composable producer). Brand "Whoop"/"Apple Health" stay verbatim; only the on-device
+ *  word is translated. Mirrors IntelligenceScreen.daySourceLabel. */
+@Composable
+private fun restHeroSourceLabel(source: String): String = when (source) {
+    "On-device" -> stringResource(R.string.sleep_source_on_device)
+    "Apple Health" -> stringResource(R.string.intelligence_source_apple_health)
+    else -> stringResource(R.string.intelligence_source_whoop)
 }
 
 /**
@@ -607,7 +643,7 @@ private fun Hero(
             // substitute another night's hypnogram. (#160)
             NoopCard(tint = Palette.restColor) {
                 Text(
-                    "No stage data recorded for this night.",
+                    stringResource(R.string.sleep_no_stage_data),
                     style = NoopType.subhead,
                     color = Palette.textTertiary,
                 )
@@ -619,9 +655,12 @@ private fun Hero(
             // EFFECTIVE onset so a hand-edited bedtime is reflected. (#160 / PR #395)
             val inBedMin = session?.let { (it.endTs - it.effectiveStartTs) / 60.0 } ?: s.total
             ChartCard(
-                title = "Stage breakdown",
-                subtitle = "${durationText(inBedMin)} in bed · ${display.efficiencyText} efficiency" +
-                    (if (display.realSegments != null) " · approx. stages (on-device)" else ""),
+                title = stringResource(R.string.sleep_stage_breakdown),
+                subtitle = stringResource(
+                    R.string.sleep_stage_subtitle,
+                    durationText(inBedMin),
+                    display.efficiencyText,
+                ) + (if (display.realSegments != null) stringResource(R.string.sleep_stage_subtitle_approx_suffix) else ""),
                 trailing = durationText(s.asleep),
                 tint = Palette.restColor,
                 footer = {
@@ -650,15 +689,15 @@ private fun Hero(
                         // group). Honest empty state when no fragment has persisted motion (older rows).
                         MotionStrip(motionEpochs)
                         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space16)) {
-                            StageLegend("Deep", Palette.sleepDeep)
-                            StageLegend("Light", Palette.sleepLight)
-                            StageLegend("REM", Palette.sleepREM)
-                            StageLegend("Awake", Palette.sleepAwake)
+                            StageLegend(stringResource(R.string.sleep_stage_deep), Palette.sleepDeep)
+                            StageLegend(stringResource(R.string.sleep_stage_light), Palette.sleepLight)
+                            StageLegend(stringResource(R.string.sleep_stage_rem), Palette.sleepREM)
+                            StageLegend(stringResource(R.string.sleep_stage_awake), Palette.sleepAwake)
                         }
                     }
                 } else {
                     Text(
-                        "No stage breakdown for this night.",
+                        stringResource(R.string.sleep_no_stage_breakdown),
                         style = NoopType.subhead,
                         color = Palette.textTertiary,
                     )
@@ -702,19 +741,19 @@ private fun NapsCard(
     val napMin = naps.sumOf { (it.endTs - it.effectiveStartTs) / 60.0 }
     NoopCard(padding = Metrics.space14, tint = Palette.restColor) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
-            Text("DAYTIME SLEEP", style = NoopType.overline, color = Palette.textTertiary)
-            Text("Naps", style = NoopType.subhead, color = Palette.textPrimary)
+            Text(stringResource(R.string.sleep_daytime_sleep), style = NoopType.overline, color = Palette.textTertiary)
+            Text(stringResource(R.string.sleep_naps), style = NoopType.subhead, color = Palette.textPrimary)
             if (naps.isNotEmpty()) {
                 // Main / Nap(s) / Total split — only meaningful once a nap exists. Total = main + naps.
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    NapSummaryCell("Main sleep", durationText(mainMin), Modifier.weight(1f))
-                    NapSummaryCell("Nap(s)", durationText(napMin), Modifier.weight(1f))
-                    NapSummaryCell("Total", durationText(mainMin + napMin), Modifier.weight(1f))
+                    NapSummaryCell(stringResource(R.string.sleep_nap_summary_main), durationText(mainMin), Modifier.weight(1f))
+                    NapSummaryCell(stringResource(R.string.sleep_nap_summary_naps), durationText(napMin), Modifier.weight(1f))
+                    NapSummaryCell(stringResource(R.string.sleep_nap_summary_total), durationText(mainMin + napMin), Modifier.weight(1f))
                 }
             }
             if (naps.isEmpty()) {
                 Text(
-                    "No naps recorded for this day.",
+                    stringResource(R.string.sleep_no_naps_recorded_for_this),
                     style = NoopType.caption,
                     color = Palette.textTertiary,
                 )
@@ -749,10 +788,14 @@ private fun MainSleepFooter(
     naps: List<SleepSession>,
     habitualMidsleepSec: Long?,
 ) {
-    val reason = mainSleepReasonText(listOf(main) + naps, habitualMidsleepSec)
+    val reason = mainSleepReasonLabel(listOf(main) + naps, habitualMidsleepSec)
     // C4 — the real merge winner, the SAME wording the By-Day badge uses ("On-device" / "Whoop" /
-    // "Apple Health"), keyed on the main block's source. Mirrors iOS SleepView.nightSource.
-    val (sourceText, sourceTint) = daySourceBadge(main.deviceId)
+    // "Apple Health"), keyed on the main block's source. Mirrors iOS SleepView.nightSource. The TINT
+    // stays the canonical daySourceBadge() merge logic (shared, en-US); only the DISPLAY label is
+    // resolved through the German resources via the @Composable [sourceBadgeLabel] resolver.
+    val sourceTint = daySourceBadge(main.deviceId).second
+    val sourceText = sourceBadgeLabel(main.deviceId)
+    val cdWhyMain = stringResource(R.string.sleep_cd_why_this_is_your_main)
     var showWhy by remember(main.startTs) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space10)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -764,7 +807,7 @@ private fun MainSleepFooter(
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                     modifier = Modifier
                         .clickable { showWhy = !showWhy }
-                        .semantics { contentDescription = "Why this is your main sleep" },
+                        .semantics { contentDescription = cdWhyMain },
                 ) {
                     Icon(
                         Icons.Filled.Info,
@@ -772,15 +815,27 @@ private fun MainSleepFooter(
                         tint = Palette.restColor,
                         modifier = Modifier.size(16.dp),
                     )
-                    Text("Why this sleep?", style = NoopType.footnote, color = Palette.restColor)
+                    Text(stringResource(R.string.sleep_why_this_sleep), style = NoopType.footnote, color = Palette.restColor)
                 }
             }
         }
         if (showWhy && reason != null) {
-            Text("About your main sleep", style = NoopType.subhead, color = Palette.textPrimary)
+            Text(stringResource(R.string.sleep_about_your_main_sleep), style = NoopType.subhead, color = Palette.textPrimary)
             Text(reason, style = NoopType.footnote, color = Palette.textSecondary)
         }
     }
+}
+
+/** Localized DISPLAY of the [daySourceBadge] provenance word, resolved from the structured [deviceId]
+ *  (the canonical shared producer stays en-US). Brand "Whoop"/"Apple Health" verbatim; on-device word
+ *  translated. Mirrors IntelligenceScreen.daySourceLabel (which is private to that file). */
+@Composable
+private fun sourceBadgeLabel(deviceId: String): String = when {
+    deviceId.endsWith("-noop") -> stringResource(R.string.intelligence_source_on_device)
+    deviceId == com.noop.data.WhoopRepository.APPLE_HEALTH_SOURCE ||
+        deviceId == com.noop.data.WhoopRepository.HEALTH_CONNECT_SOURCE ->
+        stringResource(R.string.intelligence_source_apple_health)
+    else -> stringResource(R.string.intelligence_source_whoop)
 }
 
 /**
@@ -808,6 +863,32 @@ internal fun mainSleepReasonText(blocks: List<SleepSession>, habitualMidsleepSec
             "Picked as your main sleep because it was your longest block ($dur), near your usual bedtime."
         SleepStageTotals.MainNightReason.alignedToUsual ->
             "Picked as your main sleep because it started near your usual sleep time."
+    }
+}
+
+/**
+ * Localized DISPLAY of the "why this is your main sleep" reason — the @Composable resolver over the SAME
+ * [SleepStageTotals.mainNightSelection] API [mainSleepReasonText] uses (which stays canonical en-US for
+ * the iOS-parity tests). Routes the foundation [MainNightReason] enum through the German reason templates,
+ * filling {DUR} as "Xh Ym" from the chosen block's asleep duration. null only when the day has no blocks.
+ */
+@Composable
+private fun mainSleepReasonLabel(blocks: List<SleepSession>, habitualMidsleepSec: Long?): String? {
+    val sel = SleepStageTotals.mainNightSelection(
+        blocks.map { SleepStageTotals.NightBlock(it.effectiveStartTs, it.endTs) },
+        uiTzOffsetSec(),
+        habitualMidsleepSec,
+    ) ?: return null
+    val dur = durationText(sel.asleepSec / 60.0)
+    return when (sel.reason) {
+        SleepStageTotals.MainNightReason.onlyBlock ->
+            stringResource(R.string.sleep_reason_only_block)
+        SleepStageTotals.MainNightReason.longest ->
+            stringResource(R.string.sleep_reason_longest, dur)
+        SleepStageTotals.MainNightReason.longestNearUsual ->
+            stringResource(R.string.sleep_reason_longest_near_usual, dur)
+        SleepStageTotals.MainNightReason.alignedToUsual ->
+            stringResource(R.string.sleep_reason_aligned_to_usual)
     }
 }
 
@@ -840,6 +921,11 @@ private fun NapRow(
     var showWhy by remember(nap.startTs) { mutableStateOf(false) }
     val window = "${clockTimeLabel(nap.effectiveStartTs)}–${clockTimeLabel(nap.endTs)}"
     val durMin = (nap.endTs - nap.effectiveStartTs) / 60.0
+    val cdNapRow = stringResource(R.string.sleep_cd_nap_row, window, durationText(durMin))
+    val cdWhyNap = stringResource(R.string.sleep_cd_why_this_is_logged_as)
+    val cdEditNap = if (nap.userEdited) stringResource(R.string.sleep_edit_nap_times_edited)
+        else stringResource(R.string.sleep_edit_nap_times)
+    val cdDeleteNap = stringResource(R.string.sleep_cd_delete_this_nap)
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space10)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -852,7 +938,7 @@ private fun NapRow(
                 modifier = Modifier
                     .weight(1f)
                     .semantics(mergeDescendants = true) {
-                        contentDescription = "Nap $window, ${durationText(durMin)}"
+                        contentDescription = cdNapRow
                     },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -867,7 +953,7 @@ private fun NapRow(
             IconButton(onClick = { showWhy = !showWhy }) {
                 Icon(
                     Icons.Filled.Info,
-                    contentDescription = "Why this is logged as a nap",
+                    contentDescription = cdWhyNap,
                     tint = Palette.restColor,
                     modifier = Modifier.size(18.dp),
                 )
@@ -875,7 +961,7 @@ private fun NapRow(
             IconButton(onClick = { editingStart = true }) {
                 Icon(
                     Icons.Filled.Edit,
-                    contentDescription = if (nap.userEdited) "Edit nap times (edited)" else "Edit nap times",
+                    contentDescription = cdEditNap,
                     tint = Palette.restColor,
                     modifier = Modifier.size(18.dp),
                 )
@@ -883,16 +969,16 @@ private fun NapRow(
             IconButton(onClick = { onDeleteNap(nap) }) {
                 Icon(
                     Icons.Filled.DeleteOutline,
-                    contentDescription = "Delete this nap",
+                    contentDescription = cdDeleteNap,
                     tint = Palette.textTertiary,
                     modifier = Modifier.size(18.dp),
                 )
             }
         }
         if (showWhy) {
-            Text("About this nap", style = NoopType.subhead, color = Palette.textPrimary)
+            Text(stringResource(R.string.sleep_about_this_nap), style = NoopType.subhead, color = Palette.textPrimary)
             Text(
-                "Logged as a nap. Wrong? Tap Edit to adjust your sleep and wake times.",
+                stringResource(R.string.sleep_logged_as_a_nap_wrong),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
             )
@@ -902,6 +988,7 @@ private fun NapRow(
     // Edit step 1 — nap START time-of-day, kept on the nap's own calendar day (only the hour/minute move).
     if (editingStart) {
         val startCal = Calendar.getInstance().apply { timeInMillis = nap.effectiveStartTs * 1000L }
+        val napStartedTitle = stringResource(R.string.sleep_nap_started)
         DisposableEffect(Unit) {
             val dialog = TimePickerDialog(
                 context,
@@ -916,7 +1003,7 @@ private fun NapRow(
                     editingEnd = true
                 },
                 startCal.get(Calendar.HOUR_OF_DAY), startCal.get(Calendar.MINUTE), true,
-            ).apply { setTitle("Nap started") }
+            ).apply { setTitle(napStartedTitle) }
             dialog.setOnDismissListener { editingStart = false }
             dialog.show()
             onDispose { runCatching { dialog.dismiss() } }
@@ -927,6 +1014,7 @@ private fun NapRow(
     // start (within 24h), mirroring the wake-edit cross-day constraint so a nap stays on the right day.
     if (editingEnd && pendingStart > 0L) {
         val endCal = Calendar.getInstance().apply { timeInMillis = nap.endTs * 1000L }
+        val napEndedTitle = stringResource(R.string.sleep_nap_ended)
         DisposableEffect(Unit) {
             val dialog = TimePickerDialog(
                 context,
@@ -942,7 +1030,7 @@ private fun NapRow(
                     pendingStart = 0L
                 },
                 endCal.get(Calendar.HOUR_OF_DAY), endCal.get(Calendar.MINUTE), true,
-            ).apply { setTitle("Nap ended") }
+            ).apply { setTitle(napEndedTitle) }
             dialog.setOnDismissListener { editingEnd = false }
             dialog.show()
             onDispose { runCatching { dialog.dismiss() } }
@@ -960,10 +1048,10 @@ private fun NapRow(
 @Composable
 private fun StageBreakdownRows(s: Stages) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
-        StageBreakdownRow("REM", s.rem, s.total, Palette.sleepREM)
-        StageBreakdownRow("Deep", s.deep, s.total, Palette.sleepDeep)
-        StageBreakdownRow("Light", s.light, s.total, Palette.sleepLight)
-        StageBreakdownRow("Awake", s.awake, s.total, Palette.sleepAwake)
+        StageBreakdownRow(stringResource(R.string.sleep_stage_rem), s.rem, s.total, Palette.sleepREM)
+        StageBreakdownRow(stringResource(R.string.sleep_stage_deep), s.deep, s.total, Palette.sleepDeep)
+        StageBreakdownRow(stringResource(R.string.sleep_stage_light), s.light, s.total, Palette.sleepLight)
+        StageBreakdownRow(stringResource(R.string.sleep_stage_awake), s.awake, s.total, Palette.sleepAwake)
     }
 }
 
@@ -975,14 +1063,14 @@ private fun StageBreakdownRows(s: Stages) {
 private fun StageBreakdownRow(stage: String, minutes: Double, total: Double, color: Color) {
     val fraction = if (total > 0.0) (minutes / total).coerceIn(0.0, 1.0) else 0.0
     val percent = (fraction * 100.0).roundToInt()
+    val cdRow = stringResource(R.string.sleep_cd_stage_breakdown_row, stage, durationText(minutes), percent)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space10),
         modifier = Modifier
             .fillMaxWidth()
             .semantics {
-                contentDescription =
-                    "$stage: ${durationText(minutes)}, $percent percent of the night"
+                contentDescription = cdRow
             },
     ) {
         Box(
@@ -1144,7 +1232,7 @@ private fun HypnogramWithAxis(
 private fun MotionStrip(epochs: List<Double>) {
     if (epochs.size < 2) {
         Text(
-            "No movement detail for this night.",
+            stringResource(R.string.sleep_no_movement_detail_for_this),
             style = NoopType.footnote,
             color = Palette.textTertiary,
         )
@@ -1211,17 +1299,18 @@ private fun stageColorFor(name: String): Color = when (name.trim().lowercase()) 
 private fun SleepWindowRow(session: SleepSession) {
     val asleep = clockTimeLabel(session.effectiveStartTs)
     val woke = clockTimeLabel(session.endTs)
+    val cdWindow = stringResource(R.string.sleep_cd_window_row, asleep, woke)
     // A frosted Rest-tinted card (was a flat surfaceRaised block) so the window row sits in the
     // same colour world as the rest of the screen. Bevel treatment — content unchanged.
     NoopCard(
         modifier = Modifier.semantics(mergeDescendants = true) {
-            contentDescription = "Fell asleep at $asleep, woke at $woke"
+            contentDescription = cdWindow
         },
         padding = Metrics.space14,
         tint = Palette.restColor,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SleepTime(icon = Icons.Filled.Bedtime, label = "Asleep", value = asleep)
+            SleepTime(icon = Icons.Filled.Bedtime, label = stringResource(R.string.sleep_window_asleep), value = asleep)
             Spacer(Modifier.width(Metrics.space12))
             Box(
                 modifier = Modifier
@@ -1230,7 +1319,7 @@ private fun SleepWindowRow(session: SleepSession) {
                     .background(Palette.hairline),
             )
             Spacer(Modifier.width(Metrics.space12))
-            SleepTime(icon = Icons.Filled.WbSunny, label = "Woke", value = woke)
+            SleepTime(icon = Icons.Filled.WbSunny, label = stringResource(R.string.sleep_window_woke), value = woke)
             Spacer(Modifier.weight(1f))
         }
     }
@@ -1300,7 +1389,7 @@ private fun NightNavHeader(
             containerColor = Palette.surfaceRaised,
             titleContentColor = Palette.textPrimary,
             textContentColor = Palette.textSecondary,
-            title = { Text("Adjust sleep times", style = NoopType.headline) },
+            title = { Text(stringResource(R.string.sleep_adjust_times), style = NoopType.headline) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space6)) {
                     Row(
@@ -1313,7 +1402,7 @@ private fun NightNavHeader(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Overline("Bedtime", color = Palette.textTertiary)
+                            Overline(stringResource(R.string.sleep_bedtime), color = Palette.textTertiary)
                             Spacer(Modifier.height(Metrics.space4))
                             Text(bedText, style = NoopType.headline, color = Palette.textPrimary)
                         }
@@ -1329,7 +1418,7 @@ private fun NightNavHeader(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Overline("Wake-up", color = Palette.textTertiary)
+                            Overline(stringResource(R.string.sleep_wakeup), color = Palette.textTertiary)
                             Spacer(Modifier.height(Metrics.space4))
                             Text(wakeText, style = NoopType.headline, color = Palette.textPrimary)
                         }
@@ -1346,6 +1435,7 @@ private fun NightNavHeader(
     // the new onset is passed through onUpdateTimes (which stores it in startTsAdjusted). (PR #395)
     if (editingBed && session != null) {
         val startCal = Calendar.getInstance().apply { timeInMillis = session.effectiveStartTs * 1000L }
+        val bedtimeTitle = stringResource(R.string.sleep_bedtime)
         DisposableEffect(Unit) {
             val dialog = TimePickerDialog(
                 context,
@@ -1360,7 +1450,7 @@ private fun NightNavHeader(
                 startCal.get(Calendar.HOUR_OF_DAY),
                 startCal.get(Calendar.MINUTE),
                 true,
-            ).apply { setTitle("Bedtime") }
+            ).apply { setTitle(bedtimeTitle) }
             dialog.setOnDismissListener { editingBed = false }
             dialog.show()
             onDispose { runCatching { dialog.dismiss() } }
@@ -1376,6 +1466,7 @@ private fun NightNavHeader(
     // cross-day constraint (SleepView.SleepTimeEditor.resolvedWake).
     if (editingWake && session != null) {
         val endCal = Calendar.getInstance().apply { timeInMillis = session.endTs * 1000L }
+        val wakeTitle = stringResource(R.string.sleep_wakeup_time)
         DisposableEffect(Unit) {
             val dialog = TimePickerDialog(
                 context,
@@ -1398,7 +1489,7 @@ private fun NightNavHeader(
                 endCal.get(Calendar.HOUR_OF_DAY),
                 endCal.get(Calendar.MINUTE),
                 true,
-            ).apply { setTitle("Wake-up time") }
+            ).apply { setTitle(wakeTitle) }
             dialog.setOnDismissListener { editingWake = false }
             dialog.show()
             onDispose { runCatching { dialog.dismiss() } }
@@ -1433,6 +1524,7 @@ private fun NightNavHeader(
     if (addingNapStart && session != null) {
         val anchorTs = session.endTs + 3_600L
         val startCal = Calendar.getInstance().apply { timeInMillis = anchorTs * 1000L }
+        val napStartedTitle = stringResource(R.string.sleep_nap_started)
         DisposableEffect(Unit) {
             val dialog = TimePickerDialog(
                 context,
@@ -1449,7 +1541,7 @@ private fun NightNavHeader(
                 startCal.get(Calendar.HOUR_OF_DAY),
                 startCal.get(Calendar.MINUTE),
                 true,
-            ).apply { setTitle("Nap started") }
+            ).apply { setTitle(napStartedTitle) }
             dialog.setOnDismissListener { addingNapStart = false }
             dialog.show()
             onDispose { runCatching { dialog.dismiss() } }
@@ -1461,6 +1553,7 @@ private fun NightNavHeader(
     // nap can't be re-bucketed onto the wrong day. Then hand (start, end) to onAddNap.
     if (addingNapEnd && napStartTs > 0L) {
         val endCal = Calendar.getInstance().apply { timeInMillis = (napStartTs + 30 * 60L) * 1000L }
+        val napEndedTitle = stringResource(R.string.sleep_nap_ended)
         DisposableEffect(Unit) {
             val dialog = TimePickerDialog(
                 context,
@@ -1479,7 +1572,7 @@ private fun NightNavHeader(
                 endCal.get(Calendar.HOUR_OF_DAY),
                 endCal.get(Calendar.MINUTE),
                 true,
-            ).apply { setTitle("Nap ended") }
+            ).apply { setTitle(napEndedTitle) }
             dialog.setOnDismissListener { addingNapEnd = false }
             dialog.show()
             onDispose { runCatching { dialog.dismiss() } }
@@ -1487,9 +1580,9 @@ private fun NightNavHeader(
     }
 
     val nightLabel = when (offset) {
-        0 -> "Last night"
-        1 -> "1 night ago"
-        else -> "$offset nights ago"
+        0 -> stringResource(R.string.sleep_night_last)
+        1 -> stringResource(R.string.sleep_night_one_ago)
+        else -> stringResource(R.string.sleep_night_n_ago, offset)
     }
     val blockShape = RoundedCornerShape(Metrics.cornerSm)
     val clockParts = clock?.split(" · ", limit = 2)
@@ -1503,7 +1596,7 @@ private fun NightNavHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = { if (canGoOlder) onNavigate(offset + 1) }, enabled = canGoOlder) {
-                Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous night", tint = if (canGoOlder) Palette.accent else Palette.textTertiary)
+                Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.sleep_nav_previous), tint = if (canGoOlder) Palette.accent else Palette.textTertiary)
             }
             Column(
                 modifier = Modifier
@@ -1513,7 +1606,7 @@ private fun NightNavHeader(
                     // the gold pop lives only on the date text below.
                     .background(Palette.surfaceInset)
                     .border(Metrics.divider, Palette.hairline, blockShape)
-                    .clickable(enabled = onPickNightDate != null, onClickLabel = "Pick night date") { showDatePicker = true }
+                    .clickable(enabled = onPickNightDate != null, onClickLabel = stringResource(R.string.sleep_pick_date)) { showDatePicker = true }
                     .padding(vertical = Metrics.selectorPadding, horizontal = Metrics.selectorPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -1523,7 +1616,7 @@ private fun NightNavHeader(
                 }
             }
             IconButton(onClick = { if (canGoNewer) onNavigate(offset - 1) }, enabled = canGoNewer) {
-                Icon(Icons.Filled.ChevronRight, contentDescription = "Next night", tint = if (canGoNewer) Palette.accent else Palette.textTertiary)
+                Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.sleep_nav_next), tint = if (canGoNewer) Palette.accent else Palette.textTertiary)
             }
         }
         Row(
@@ -1542,14 +1635,14 @@ private fun NightNavHeader(
                 Spacer(Modifier.width(Metrics.space6))
                 Icon(
                     Icons.Filled.Edit,
-                    contentDescription = "Adjust sleep times",
+                    contentDescription = stringResource(R.string.sleep_adjust_times),
                     tint = Palette.textTertiary,
                     modifier = Modifier.size(14.dp).clickable { showTimeChoice = true },
                 )
                 Spacer(Modifier.width(Metrics.space12))
                 Icon(
                     Icons.Filled.DeleteOutline,
-                    contentDescription = "Delete this sleep session",
+                    contentDescription = stringResource(R.string.sleep_delete_session_action),
                     tint = Palette.textTertiary,
                     modifier = Modifier.size(14.dp).clickable { showDeleteConfirm = true },
                 )
@@ -1558,7 +1651,7 @@ private fun NightNavHeader(
                 Spacer(Modifier.width(Metrics.space12))
                 Icon(
                     Icons.Filled.Add,
-                    contentDescription = "Add a nap",
+                    contentDescription = stringResource(R.string.sleep_cd_add_a_nap),
                     tint = Palette.textTertiary,
                     modifier = Modifier.size(14.dp).clickable { addingNapStart = true },
                 )
@@ -1569,7 +1662,7 @@ private fun NightNavHeader(
         // appear once the strap has offloaded them (typically the next morning sync). (#614 follow-up)
         if (!canGoOlder) {
             Text(
-                "No earlier night stored yet. Earlier nights sync in the morning.",
+                stringResource(R.string.sleep_no_earlier_night),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
                 textAlign = TextAlign.Center,
@@ -1586,10 +1679,10 @@ private fun NightNavHeader(
             containerColor = Palette.surfaceRaised,
             titleContentColor = Palette.textPrimary,
             textContentColor = Palette.textSecondary,
-            title = { Text("Delete this sleep session?", style = NoopType.headline) },
+            title = { Text(stringResource(R.string.sleep_delete_confirm_title), style = NoopType.headline) },
             text = {
                 Text(
-                    "Removes this recorded sleep and recomputes the day without it. This can't be undone.",
+                    stringResource(R.string.sleep_delete_confirm_body),
                     style = NoopType.subhead,
                 )
             },
@@ -1598,12 +1691,12 @@ private fun NightNavHeader(
                     showDeleteConfirm = false
                     onDeleteSession(session)
                 }) {
-                    Text("Delete", style = NoopType.headline, color = Palette.statusCritical)
+                    Text(stringResource(R.string.sleep_delete), style = NoopType.headline, color = Palette.statusCritical)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel", style = NoopType.subhead, color = Palette.textTertiary)
+                    Text(stringResource(R.string.sleep_cancel), style = NoopType.subhead, color = Palette.textTertiary)
                 }
             },
         )
@@ -1634,9 +1727,9 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
     val tiles = listOf<@Composable (Modifier) -> Unit>(
         { mod ->
             SparkTile(
-                mod, "Rest",
+                mod, stringResource(R.string.sleep_tile_rest),
                 value = pctValue(m.performance.latest),
-                caption = vsTypical(m.performance.latest, m.performance.typical, "%"),
+                caption = vsTypicalText(m.performance.latest, m.performance.typical, "%"),
                 accent = m.performance.latest?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
                 spark = m.performance.series, sparkColor = Palette.restColor,
                 onClick = { onMetricClick("performance") },
@@ -1644,9 +1737,9 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
         },
         { mod ->
             SparkTile(
-                mod, "Efficiency",
+                mod, stringResource(R.string.sleep_tile_efficiency),
                 value = pctValue(m.efficiency.latest),
-                caption = vsTypical(m.efficiency.latest, m.efficiency.typical, "%"),
+                caption = vsTypicalText(m.efficiency.latest, m.efficiency.typical, "%"),
                 accent = Palette.statusPositive,
                 spark = m.efficiency.series, sparkColor = Palette.statusPositive,
                 onClick = { onMetricClick("efficiency") },
@@ -1654,9 +1747,9 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
         },
         { mod ->
             SparkTile(
-                mod, "Consistency",
+                mod, stringResource(R.string.sleep_tile_consistency),
                 value = pctValue(m.consistency.latest),
-                caption = vsTypical(m.consistency.latest, m.consistency.typical, "%"),
+                caption = vsTypicalText(m.consistency.latest, m.consistency.typical, "%"),
                 accent = m.consistency.latest?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
                 spark = m.consistency.series, sparkColor = Palette.metricCyan,
                 onClick = { onMetricClick("consistency") },
@@ -1664,9 +1757,9 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
         },
         { mod ->
             SparkTile(
-                mod, "Hours vs Needed",
+                mod, stringResource(R.string.sleep_tile_hours_vs_needed),
                 value = pctValue(m.hoursVsNeeded.latest),
-                caption = vsTypical(m.hoursVsNeeded.latest, m.hoursVsNeeded.typical, "%"),
+                caption = vsTypicalText(m.hoursVsNeeded.latest, m.hoursVsNeeded.typical, "%"),
                 accent = m.hoursVsNeeded.latest?.let { Palette.recoveryColor(minOf(100.0, it)) } ?: Palette.textPrimary,
                 spark = m.hoursVsNeeded.series, sparkColor = Palette.restColor,
                 onClick = { onMetricClick("hours_vs_needed") },
@@ -1674,9 +1767,9 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
         },
         { mod ->
             SparkTile(
-                mod, "Restorative",
+                mod, stringResource(R.string.sleep_tile_restorative),
                 value = pctValue(m.restorative.latest),
-                caption = vsTypical(m.restorative.latest, m.restorative.typical, "%"),
+                caption = vsTypicalText(m.restorative.latest, m.restorative.typical, "%"),
                 accent = Palette.sleepREM,
                 spark = m.restorative.series, sparkColor = Palette.sleepREM,
                 onClick = { onMetricClick("restorative") },
@@ -1684,9 +1777,9 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
         },
         { mod ->
             SparkTile(
-                mod, "Respiratory",
+                mod, stringResource(R.string.sleep_tile_respiratory),
                 value = m.respiratory.latest?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                caption = vsTypical(m.respiratory.latest, m.respiratory.typical, " rpm", decimals = 1),
+                caption = vsTypicalText(m.respiratory.latest, m.respiratory.typical, " rpm", decimals = 1),
                 accent = Palette.metricPurple,
                 spark = m.respiratory.series, sparkColor = Palette.metricPurple,
                 onClick = { onMetricClick("respiratory") },
@@ -1694,9 +1787,9 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
         },
         { mod ->
             SparkTile(
-                mod, "Sleep Debt",
+                mod, stringResource(R.string.sleep_tile_sleep_debt),
                 value = m.sleepDebt.latest?.let { durationText(it) } ?: "—",
-                caption = debtCaption(m.sleepDebt.latest),
+                caption = debtCaptionText(m.sleepDebt.latest),
                 accent = debtColor(m.sleepDebt.latest),
                 spark = m.sleepDebt.series, sparkColor = Palette.metricRose,
                 onClick = { onMetricClick("sleep_debt") },
@@ -1705,7 +1798,11 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Night detail", overline = "Metrics", trailing = "vs typical")
+        SectionHeader(
+            stringResource(R.string.sleep_metric_night_detail),
+            overline = stringResource(R.string.sleep_metric_overline),
+            trailing = stringResource(R.string.sleep_metric_vs_typical),
+        )
         // Two-up rows keep every tile the same fixed height with no empty cells.
         tiles.chunked(2).forEach { rowTiles ->
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
@@ -1728,11 +1825,15 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
 @Composable
 internal fun SleepDebtLedgerCard(ledger: SleepDebtLedger) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Sleep-debt ledger", overline = "Last 14 nights", trailing = "running balance")
+        SectionHeader(
+            stringResource(R.string.sleep_ledger_title),
+            overline = stringResource(R.string.sleep_ledger_overline),
+            trailing = stringResource(R.string.sleep_ledger_trailing),
+        )
         NoopCard(padding = Metrics.cardPadding, tint = Palette.restColor) {
             if (ledger.nightCount == 0) {
                 Text(
-                    "No nights with sleep data yet — your ledger fills in as you wear the strap to bed.",
+                    stringResource(R.string.sleep_ledger_empty),
                     style = NoopType.subhead,
                     color = Palette.textTertiary,
                 )
@@ -1741,7 +1842,7 @@ internal fun SleepDebtLedgerCard(ledger: SleepDebtLedger) {
                     // Headline: net balance + the short tag (sleep debt / surplus / balanced).
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            debtHeadline(ledger),
+                            debtHeadlineText(ledger),
                             style = NoopType.tileValueLarge,
                             color = debtBalanceColor(ledger),
                             maxLines = 1,
@@ -1749,14 +1850,14 @@ internal fun SleepDebtLedgerCard(ledger: SleepDebtLedger) {
                             modifier = Modifier.weight(1f),
                         )
                         Text(
-                            debtTag(ledger),
+                            debtTagText(ledger),
                             style = NoopType.captionNumber,
                             color = debtBalanceColor(ledger),
                         )
                     }
                     // Plain-English read.
                     Text(
-                        debtRead(ledger),
+                        debtReadText(ledger),
                         style = NoopType.subhead,
                         color = Palette.textSecondary,
                     )
@@ -1765,9 +1866,9 @@ internal fun SleepDebtLedgerCard(ledger: SleepDebtLedger) {
                     Hairline()
                     ChartFooter(
                         listOf(
-                            "Balance" to debtSigned(ledger.balanceMin),
-                            "Per-night need" to durationText(ledger.needMin),
-                            "Nights" to "${ledger.nightCount}",
+                            stringResource(R.string.sleep_ledger_balance) to debtSigned(ledger.balanceMin),
+                            stringResource(R.string.sleep_ledger_per_night_need) to durationText(ledger.needMin),
+                            stringResource(R.string.sleep_ledger_nights) to "${ledger.nightCount}",
                         ),
                     )
                 }
@@ -1787,13 +1888,13 @@ private fun DebtDeltaBars(ledger: SleepDebtLedger) {
     val accentColor = Palette.accent
     val deficitColor = Palette.metricRose
     val centreColor = Palette.hairline
+    val cdBars = stringResource(R.string.sleep_cd_debt_bars, ledger.nightCount, debtSigned(ledger.balanceMin))
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
             .semantics {
-                contentDescription =
-                    "Per-night sleep balance: ${ledger.nightCount} nights, net ${debtSigned(ledger.balanceMin)}"
+                contentDescription = cdBars
             }
             .drawBehind {
                 val n = max(deltas.size, 1)
@@ -1830,14 +1931,18 @@ private fun DebtDeltaBars(ledger: SleepDebtLedger) {
 private fun StagesVsTypical(m: SleepModel) {
     val s = m.stages
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Stages vs typical", overline = "Selected night", trailing = "marker = your mean")
+        SectionHeader(
+            stringResource(R.string.sleep_stages_vs_typical_title),
+            overline = stringResource(R.string.sleep_stages_vs_typical_overline),
+            trailing = stringResource(R.string.sleep_stages_vs_typical_trailing),
+        )
         NoopCard(tint = Palette.restColor) {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
-                StageRow("Deep", last = s.deep, typical = m.typicalDeepMin, color = Palette.sleepDeep)
+                StageRow(stringResource(R.string.sleep_stage_deep), last = s.deep, typical = m.typicalDeepMin, color = Palette.sleepDeep)
                 Hairline()
-                StageRow("REM", last = s.rem, typical = m.typicalRemMin, color = Palette.sleepREM)
+                StageRow(stringResource(R.string.sleep_stage_rem), last = s.rem, typical = m.typicalRemMin, color = Palette.sleepREM)
                 Hairline()
-                StageRow("Light", last = s.light, typical = m.typicalLightMin, color = Palette.sleepLight)
+                StageRow(stringResource(R.string.sleep_stage_light), last = s.light, typical = m.typicalLightMin, color = Palette.sleepLight)
             }
         }
     }
@@ -1853,15 +1958,14 @@ private fun Hairline() {
 private fun StageRow(label: String, last: Double, typical: Double?, color: Color) {
     val scaleMax = max(last, typical ?: 0.0) * 1.18
     val scale = if (scaleMax > 0.0) scaleMax else 1.0
-    val deltaText: String = run {
-        if (typical == null || typical <= 0.0) {
-            ""
-        } else {
-            val diff = last - typical
-            val sign = if (diff >= 0) "+" else "−"
-            "$sign${durationText(abs(diff))} vs typ"
-        }
+    val deltaText: String = if (typical == null || typical <= 0.0) {
+        ""
+    } else {
+        val diff = last - typical
+        val sign = if (diff >= 0) "+" else "−"
+        stringResource(R.string.sleep_stage_vs_typ, sign, durationText(abs(diff)))
     }
+    val cdBar = stringResource(R.string.sleep_cd_stage_bar, label)
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space6)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Overline(label, modifier = Modifier.weight(1f))
@@ -1884,7 +1988,7 @@ private fun StageRow(label: String, last: Double, typical: Double?, color: Color
                 .height(Metrics.progressHeight)
                 .clip(RoundedCornerShape(Metrics.cornerPill))
                 .background(Palette.surfaceInset)
-                .semantics { contentDescription = "$label minutes vs your typical bar" }
+                .semantics { contentDescription = cdBar }
                 .drawBehind {
                     // last-night fill
                     if (fillFrac > 0f) {
@@ -1922,20 +2026,26 @@ private fun DrawScope.drawRoundRectFill(color: Color, frac: Float) {
 private fun DurationTrend(m: SleepModel) {
     val pts = m.trendHours
     val avg = pts.averageOrNull()
+    val cdHoursTrend = stringResource(R.string.sleep_cd_hours_trend)
+    val cdDebtTrend = stringResource(R.string.sleep_cd_debt_trend)
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Trend", overline = "Sleep", trailing = "Last 14 days")
+        SectionHeader(
+            stringResource(R.string.sleep_trend_title),
+            overline = stringResource(R.string.sleep_trend_overline),
+            trailing = stringResource(R.string.sleep_trend_last_14_days),
+        )
         ChartCard(
-            title = "Hours asleep",
-            subtitle = "Per night, trailing 14 days",
-            trailing = avg?.let { String.format(Locale.US, "%.1f h avg", it) },
+            title = stringResource(R.string.sleep_trend_hours_asleep),
+            subtitle = stringResource(R.string.sleep_trend_hours_subtitle),
+            trailing = avg?.let { stringResource(R.string.sleep_trend_hours_avg, String.format(Locale.US, "%.1f", it)) },
             tint = Palette.restColor,
             footer = {
                 ChartFooter(
                     listOf(
-                        "Avg" to (avg?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
-                        "Min" to (pts.minOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
-                        "Max" to (pts.maxOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
-                        "Nights" to "${pts.size}",
+                        stringResource(R.string.sleep_trend_avg) to (avg?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
+                        stringResource(R.string.sleep_trend_min) to (pts.minOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
+                        stringResource(R.string.sleep_trend_max) to (pts.maxOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
+                        stringResource(R.string.sleep_trend_nights) to "${pts.size}",
                     ),
                 )
             },
@@ -1945,7 +2055,7 @@ private fun DurationTrend(m: SleepModel) {
                     LineChart(
                         values = pts,
                         modifier = Modifier.fillMaxWidth().height(Metrics.compactChartHeight)
-                            .semantics { contentDescription = "Sleep hours trend chart" },
+                            .semantics { contentDescription = cdHoursTrend },
                         color = Palette.restColor,
                         fill = true,
                         selectionEnabled = true,
@@ -1958,16 +2068,16 @@ private fun DurationTrend(m: SleepModel) {
         }
 
         ChartCard(
-            title = "Sleep Debt",
-            subtitle = "Hours of sleep debt per day",
+            title = stringResource(R.string.sleep_trend_debt_title),
+            subtitle = stringResource(R.string.sleep_trend_debt_subtitle),
             trailing = m.trendDebtHours.lastOrNull()?.let { String.format(Locale.US, "%.1f h", it) },
             tint = Palette.restColor,
             footer = {
                 ChartFooter(
                     listOf(
-                        "Avg" to (m.trendDebtHours.averageOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "â€”"),
-                        "Max" to (m.trendDebtHours.maxOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "â€”"),
-                        "Days" to "${m.trendDebtHours.size}",
+                        stringResource(R.string.sleep_trend_avg) to (m.trendDebtHours.averageOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
+                        stringResource(R.string.sleep_trend_max) to (m.trendDebtHours.maxOrNull()?.let { String.format(Locale.US, "%.1f h", it) } ?: "—"),
+                        stringResource(R.string.sleep_trend_days) to "${m.trendDebtHours.size}",
                     ),
                 )
             },
@@ -1977,7 +2087,7 @@ private fun DurationTrend(m: SleepModel) {
                     BarChart(
                         values = m.trendDebtHours,
                         modifier = Modifier.fillMaxWidth().height(Metrics.compactChartHeight)
-                            .semantics { contentDescription = "Sleep debt trend chart" },
+                            .semantics { contentDescription = cdDebtTrend },
                         color = Palette.metricRose,
                         selectionEnabled = true,
                     )
@@ -1996,7 +2106,7 @@ private fun TrendPlaceholder() {
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
-        InsetChartPlaceholder(message = "Not enough nights yet.")
+        InsetChartPlaceholder(message = stringResource(R.string.sleep_trend_not_enough))
     }
 }
 
@@ -2153,9 +2263,8 @@ private fun SparkTile(
 @Composable
 private fun SleepEmptyState() {
     DataPendingNote(
-        title = "No nights here yet",
-        body = "No nights here yet. Import your WHOOP export in Data Sources to see " +
-            "every night, your sleep stages and trends straight away.",
+        title = stringResource(R.string.sleep_empty_title),
+        body = stringResource(R.string.sleep_empty_body),
     )
 }
 
@@ -2680,19 +2789,30 @@ private fun pct(minutes: Double, total: Double): Int =
 
 private fun pctValue(v: Double?): String = v?.let { "${it.roundToInt()}%" } ?: "—"
 
-/** "+12% vs typical" / "−0.4 rpm vs typical" — the latest-vs-mean caption every tile carries. */
-private fun vsTypical(latest: Double?, typical: Double?, suffix: String, decimals: Int = 0): String {
-    if (latest == null || typical == null || typical == 0.0) return "vs typical —"
+/** Localized "+12% vs. typisch" caption: the signed magnitude+unit ("+12%", "−0.4 rpm") is built with
+ *  the Locale.US number formatting (unchanged), then wrapped by the German vs-typical template. The
+ *  no-data fallback uses the empty template. Mirrors the producer-vs-display split. */
+@Composable
+private fun vsTypicalText(latest: Double?, typical: Double?, suffix: String, decimals: Int = 0): String {
+    if (latest == null || typical == null || typical == 0.0) return stringResource(R.string.sleep_vs_typical_empty)
     val diff = latest - typical
     val sign = if (diff >= 0) "+" else "−"
     val mag = abs(diff)
     val num = if (decimals == 0) "${mag.roundToInt()}" else String.format(Locale.US, "%.${decimals}f", mag)
-    return "$sign$num$suffix vs typical"
+    return stringResource(R.string.sleep_vs_typical_value, "$sign$num$suffix")
 }
 
 private fun debtCaption(debt: Double?): String {
     if (debt == null) return "vs need"
     return if (debt < 15.0) "On target" else "Below need"
+}
+
+/** Localized DISPLAY of the sleep-debt tile caption, resolved from the [debtCaption] banding. */
+@Composable
+private fun debtCaptionText(debt: Double?): String = when (debtCaption(debt)) {
+    "On target" -> stringResource(R.string.sleep_debt_caption_on_target)
+    "Below need" -> stringResource(R.string.sleep_debt_caption_below_need)
+    else -> stringResource(R.string.sleep_debt_caption_vs_need)
 }
 
 private fun debtColor(debt: Double?): Color = when {
@@ -2704,33 +2824,38 @@ private fun debtColor(debt: Double?): Color = when {
 
 // MARK: - Sleep-debt ledger formatting (mirror SleepView.swift)
 
-/**
- * "≈2h 10m" magnitude headline — leading "≈" because it's an accumulated estimate. Reads
- * "On target" inside the deadband so a few stray minutes don't show as debt.
- */
-private fun debtHeadline(ledger: SleepDebtLedger): String =
-    if (ledger.magnitudeMin < SleepDebt.ON_TARGET_BAND_MIN) "On target"
-    else "≈${durationText(ledger.magnitudeMin)}"
+/** Localized DISPLAY of the ledger headline: "Im Soll" inside the band, else "≈Xh Ym" (the "Xh Ym"
+ *  duration formatting is unchanged). "≈" leads because it's an accumulated estimate; reads the on-target
+ *  caption inside the deadband so a few stray minutes don't show as debt. */
+@Composable
+private fun debtHeadlineText(ledger: SleepDebtLedger): String =
+    if (ledger.magnitudeMin < SleepDebt.ON_TARGET_BAND_MIN) stringResource(R.string.sleep_debt_caption_on_target)
+    else stringResource(R.string.sleep_debt_headline_approx, durationText(ledger.magnitudeMin))
 
-/** Short tag beside the headline: sleep debt / surplus / balanced. */
-private fun debtTag(ledger: SleepDebtLedger): String = when {
-    ledger.magnitudeMin < SleepDebt.ON_TARGET_BAND_MIN -> "balanced"
-    ledger.isDebt -> "sleep debt"
-    else -> "surplus"
+/** Localized DISPLAY of the ledger tag word: balanced (inside the band) / sleep debt / surplus. */
+@Composable
+private fun debtTagText(ledger: SleepDebtLedger): String = when {
+    ledger.magnitudeMin < SleepDebt.ON_TARGET_BAND_MIN -> stringResource(R.string.sleep_debt_tag_balanced)
+    ledger.isDebt -> stringResource(R.string.sleep_debt_tag_debt)
+    else -> stringResource(R.string.sleep_debt_tag_surplus)
 }
 
-/** Plain-English read of the running balance over the window. */
-private fun debtRead(ledger: SleepDebtLedger): String {
+/** Localized DISPLAY of the plain-English running-balance read over the window. The "Xh Ym" magnitude is
+ *  the canonical duration formatting; the "span" ("die letzten N Nächte") is a one/many resource; both
+ *  fill the German read templates (on-top / debt / surplus). */
+@Composable
+private fun debtReadText(ledger: SleepDebtLedger): String {
     val nights = ledger.nightCount
-    val span = "the last $nights night${if (nights == 1) "" else "s"}"
+    val span = if (nights == 1) stringResource(R.string.sleep_debt_span_one)
+        else stringResource(R.string.sleep_debt_span_many, nights)
     if (ledger.magnitudeMin < SleepDebt.ON_TARGET_BAND_MIN) {
-        return "You're roughly on top of your sleep across $span — slept minutes balance out against your need."
+        return stringResource(R.string.sleep_debt_read_on_top, span)
     }
     val mag = durationText(ledger.magnitudeMin)
     return if (ledger.isDebt) {
-        "You've banked about $mag of sleep debt over $span. Surplus nights count back against it — an earlier night or two would clear it."
+        stringResource(R.string.sleep_debt_read_debt, mag, span)
     } else {
-        "You're carrying about $mag of surplus over $span — you've slept past your need on balance. Nicely ahead."
+        stringResource(R.string.sleep_debt_read_surplus, mag, span)
     }
 }
 
@@ -2854,10 +2979,11 @@ internal fun HoursVsNeededCard(m: SleepModel) {
 
     NoopCard(padding = Metrics.cardPadding, tint = Palette.restColor) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
+            val cdProgress = stringResource(R.string.sleep_cd_hvn_progress, score.roundToInt())
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Overline("Sleep")
-                    Text("Hours vs Needed", style = NoopType.headline, color = Palette.textPrimary)
+                    Overline(stringResource(R.string.sleep_hvn_overline))
+                    Text(stringResource(R.string.sleep_hvn_title), style = NoopType.headline, color = Palette.textPrimary)
                 }
                 Text(trendArrow, style = NoopType.title2, color = arrowColor)
                 Spacer(Modifier.width(Metrics.space6))
@@ -2871,7 +2997,7 @@ internal fun HoursVsNeededCard(m: SleepModel) {
                     .height(Metrics.progressHeight)
                     .clip(RoundedCornerShape(Metrics.cornerPill))
                     .background(Palette.surfaceInset)
-                    .semantics { contentDescription = "Hours vs Needed progress bar, ${score.roundToInt()} percent" },
+                    .semantics { contentDescription = cdProgress },
             ) {
                 Box(
                     modifier = Modifier
@@ -2893,17 +3019,17 @@ internal fun HoursVsNeededCard(m: SleepModel) {
                 if (debtRepay > 0) Box(modifier = Modifier.weight((debtRepay / totalBar).toFloat()).fillMaxHeight().background(Palette.statusCritical))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space14)) {
-                LegendDot("Healthy Min", Palette.metricPurple)
-                LegendDot("Strain", Palette.strain066)
-                LegendDot("Debt", Palette.statusCritical)
+                LegendDot(stringResource(R.string.sleep_hvn_healthy_min), Palette.metricPurple)
+                LegendDot(stringResource(R.string.sleep_hvn_strain), Palette.strain066)
+                LegendDot(stringResource(R.string.sleep_hvn_debt), Palette.statusCritical)
             }
 
             Hairline()
             Row(modifier = Modifier.fillMaxWidth()) {
                 listOf(
-                    "Slept" to String.format(Locale.US, "%.1f h", sleptH),
-                    "Needed" to String.format(Locale.US, "%.1f h", neededH),
-                    "Debt" to if (debtH > 0.05) String.format(Locale.US, "%.1f h", debtH) else "None",
+                    stringResource(R.string.sleep_hvn_slept) to String.format(Locale.US, "%.1f h", sleptH),
+                    stringResource(R.string.sleep_hvn_needed) to String.format(Locale.US, "%.1f h", neededH),
+                    stringResource(R.string.sleep_hvn_debt) to if (debtH > 0.05) String.format(Locale.US, "%.1f h", debtH) else stringResource(R.string.sleep_hvn_none),
                 ).forEach { (lbl, v) ->
                     Column(modifier = Modifier.weight(1f)) {
                         Overline(lbl, color = Palette.textTertiary)
@@ -2981,9 +3107,9 @@ internal fun SleepConsistencyCard(sleeps: List<SleepSession>) {
             // Header: title + trend-score.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Overline("Schedule")
-                    Text("Bedtime & wake time", style = NoopType.headline, color = Palette.textPrimary)
-                    Text("Sleep window over recent nights", style = NoopType.footnote, color = Palette.textSecondary)
+                    Overline(stringResource(R.string.sleep_consistency_overline))
+                    Text(stringResource(R.string.sleep_consistency_title), style = NoopType.headline, color = Palette.textPrimary)
+                    Text(stringResource(R.string.sleep_consistency_subtitle), style = NoopType.footnote, color = Palette.textSecondary)
                 }
                 Text("${consistencyPct.roundToInt()}%", style = NoopType.chartValue, color = Palette.restColor)
             }
@@ -2995,12 +3121,13 @@ internal fun SleepConsistencyCard(sleeps: List<SleepSession>) {
             val purpleColor = Palette.metricPurple
             val hairlineColor = Palette.hairline
             val labelArgb = Palette.textTertiary.toArgb()
+            val cdConsistencyChart = stringResource(R.string.sleep_cd_consistency_chart)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp)
                     .clip(RoundedCornerShape(Metrics.cornerSm))
-                    .semantics { contentDescription = "Sleep consistency nightly bed and wake chart" }
+                    .semantics { contentDescription = cdConsistencyChart }
                     .drawBehind {
                         val yAxisW = 52f
                         val chartW = size.width - yAxisW
@@ -3073,16 +3200,16 @@ internal fun SleepConsistencyCard(sleeps: List<SleepSession>) {
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space14)) {
-                LegendDot("Typical bedtime  $typicalBedLabel", Palette.metricPurple)
-                LegendDot("Wake  $typicalWakeLabel", Palette.restColor)
+                LegendDot(stringResource(R.string.sleep_consistency_legend_bedtime, typicalBedLabel), Palette.metricPurple)
+                LegendDot(stringResource(R.string.sleep_consistency_legend_wake, typicalWakeLabel), Palette.restColor)
             }
 
             Hairline()
             Row(modifier = Modifier.fillMaxWidth()) {
                 listOf(
-                    "Score" to "${consistencyPct.roundToInt()}%",
-                    "Typical" to "${((bedSdH + wakeSdH) / 2f * 60f).roundToInt()} min SD",
-                    "Nights" to "${recent.size}",
+                    stringResource(R.string.sleep_consistency_score) to "${consistencyPct.roundToInt()}%",
+                    stringResource(R.string.sleep_consistency_typical) to stringResource(R.string.sleep_consistency_sd_value, ((bedSdH + wakeSdH) / 2f * 60f).roundToInt()),
+                    stringResource(R.string.sleep_consistency_nights) to "${recent.size}",
                 ).forEach { (lbl, v) ->
                     Column(modifier = Modifier.weight(1f)) {
                         Overline(lbl, color = Palette.textTertiary)
@@ -3117,6 +3244,24 @@ private fun sleepMetricSpec(key: String): SleepMetricSpec = when (key) {
     "respiratory"     -> SleepMetricSpec("Respiratory Rate", "rpm", Palette.metricPurple) { String.format(Locale.US, "%.1f", it) }
     "sleep_debt"      -> SleepMetricSpec("Sleep Debt", "h", Palette.metricRose) { String.format(Locale.US, "%.1f", it) }
     else              -> SleepMetricSpec(key, "", Palette.accent) { "${it.roundToInt()}" }
+}
+
+/**
+ * Localized DISPLAY title for the metric-detail sheet, resolved from the structured metric [key]. The
+ * canonical [sleepMetricSpec].title stays en-US (logic/color/format/unit live there); only the heading
+ * word is German. The generic fallback shows the raw key, matching the spec's en-US fallback. Mirrors the
+ * producer-vs-display resolver pattern (e.g. recoveryStateLabel / daySourceLabel).
+ */
+@Composable
+private fun sleepMetricTitle(key: String): String = when (key) {
+    "performance"     -> stringResource(R.string.sleep_tile_rest)
+    "efficiency"      -> stringResource(R.string.sleep_metric_efficiency)
+    "consistency"     -> stringResource(R.string.sleep_metric_consistency)
+    "hours_vs_needed" -> stringResource(R.string.sleep_metric_hours_vs_needed)
+    "restorative"     -> stringResource(R.string.sleep_metric_restorative)
+    "respiratory"     -> stringResource(R.string.sleep_metric_respiratory_rate)
+    "sleep_debt"      -> stringResource(R.string.sleep_metric_sleep_debt)
+    else              -> key
 }
 
 private fun buildSleepMetricPoints(days: List<DailyMetric>, key: String): List<Pair<String, Double>> {
@@ -3180,18 +3325,19 @@ private fun SleepMetricDetailSheetContent(vm: AppViewModel, key: String) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = Metrics.space24, vertical = Metrics.space8),
         verticalArrangement = Arrangement.spacedBy(Metrics.space16),
     ) {
+        val metricTitle = sleepMetricTitle(key)
         if (allPoints.size < 2) {
-            Text("Not enough history yet", style = NoopType.headline, color = Palette.textPrimary)
+            Text(stringResource(R.string.sleep_detail_not_enough_title), style = NoopType.headline, color = Palette.textPrimary)
             Text(
-                "This metric needs at least two nights of data.",
+                stringResource(R.string.sleep_detail_not_enough_body),
                 style = NoopType.subhead, color = Palette.textSecondary,
             )
             Spacer(Modifier.height(Metrics.space16))
         } else if (filteredPoints.size < 2) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Overline("Sleep")
-                    Text(spec.title, style = NoopType.title2, color = Palette.textPrimary)
+                    Overline(stringResource(R.string.sleep_detail_overline))
+                    Text(metricTitle, style = NoopType.title2, color = Palette.textPrimary)
                 }
             }
             SegmentedPillControl(
@@ -3200,7 +3346,7 @@ private fun SleepMetricDetailSheetContent(vm: AppViewModel, key: String) {
                 label = { it.label },
                 onSelect = { range = it },
             )
-            Text("Not enough history in this range — try 3M, 6M, or ALL.", style = NoopType.subhead, color = Palette.textSecondary)
+            Text(stringResource(R.string.sleep_detail_not_enough_range), style = NoopType.subhead, color = Palette.textSecondary)
             Spacer(Modifier.height(Metrics.space16))
         } else {
             val values = filteredPoints.map { it.second }
@@ -3212,9 +3358,9 @@ private fun SleepMetricDetailSheetContent(vm: AppViewModel, key: String) {
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Overline("Sleep · ${filteredPoints.size} nights")
-                    Text(spec.title, style = NoopType.title2, color = Palette.textPrimary)
-                    Text("as of ${latest.first}", style = NoopType.footnote, color = Palette.textTertiary)
+                    Overline(stringResource(R.string.sleep_detail_nights, filteredPoints.size))
+                    Text(metricTitle, style = NoopType.title2, color = Palette.textPrimary)
+                    Text(stringResource(R.string.sleep_as_of, latest.first), style = NoopType.footnote, color = Palette.textTertiary)
                 }
                 Text(
                     "${spec.format(latest.second)} ${spec.unit}".trim(),
@@ -3240,10 +3386,11 @@ private fun SleepMetricDetailSheetContent(vm: AppViewModel, key: String) {
                     Text("${spec.format(avgV)} ${spec.unit}".trim(), style = NoopType.footnote, color = Palette.textTertiary, maxLines = 1)
                     Text("${spec.format(minV)} ${spec.unit}".trim(), style = NoopType.footnote, color = Palette.textTertiary, maxLines = 1)
                 }
+                val cdMetricChart = stringResource(R.string.sleep_trend_chart_cd, metricTitle)
                 LineChart(
                     values = values,
                     modifier = Modifier.weight(1f).height(Metrics.chartHeight)
-                        .semantics { contentDescription = "${spec.title} trend chart" },
+                        .semantics { contentDescription = cdMetricChart },
                     color = spec.color,
                     fill = true,
                     selectionEnabled = true,
@@ -3260,7 +3407,11 @@ private fun SleepMetricDetailSheetContent(vm: AppViewModel, key: String) {
             }
             Hairline()
             Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("Min" to minV, "Avg" to avgV, "Max" to maxV).forEach { (lbl, v) ->
+                listOf(
+                    stringResource(R.string.sleep_stat_min) to minV,
+                    stringResource(R.string.sleep_stat_avg) to avgV,
+                    stringResource(R.string.sleep_stat_max) to maxV,
+                ).forEach { (lbl, v) ->
                     Column(modifier = Modifier.weight(1f)) {
                         Overline(lbl, color = Palette.textTertiary)
                         Text(

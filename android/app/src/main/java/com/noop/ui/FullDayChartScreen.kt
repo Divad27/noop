@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -37,6 +40,8 @@ import java.util.Locale
 // per-second rows (WhoopDao.hrSamples, same COALESCE). The chart's pinch/pan reports the new window and
 // we re-read at the new resolution. Mirrors macOS FullDayChartView + OverviewHRChart's zoom binding.
 
+// The enum keeps a canonical English `title` (logic / lowercase() input); the localized label is
+// resolved at the @Composable display sites via [timelineMetricTitle]. HRV/SpO₂ stay untranslated.
 private enum class TimelineMetric(val title: String) {
     Hr("Heart Rate"),
     Hrv("HRV"),
@@ -45,6 +50,19 @@ private enum class TimelineMetric(val title: String) {
     Respiration("Respiration"),
     Motion("Motion"),
 }
+
+/** Localized timeline-metric title, resolved at the display site (the enum's `title` stays English). */
+@Composable
+private fun timelineMetricTitle(metric: TimelineMetric): String = stringResource(
+    when (metric) {
+        TimelineMetric.Hr -> R.string.full_day_chart_metric_hr
+        TimelineMetric.Hrv -> R.string.full_day_chart_metric_hrv
+        TimelineMetric.Spo2 -> R.string.full_day_chart_metric_spo2
+        TimelineMetric.SkinTemp -> R.string.full_day_chart_metric_skin_temp
+        TimelineMetric.Respiration -> R.string.full_day_chart_metric_respiration
+        TimelineMetric.Motion -> R.string.full_day_chart_metric_motion
+    }
+)
 
 @Composable
 fun FullDayChartScreen(vm: AppViewModel, onBack: () -> Unit) {
@@ -110,27 +128,31 @@ fun FullDayChartScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
 
     ScreenScaffold(
-        title = "Deep Timeline",
-        subtitle = "Every second of your day, zoomable.",
+        title = stringResource(R.string.full_day_chart_screen_title),
+        subtitle = stringResource(R.string.full_day_chart_screen_subtitle),
     ) {
-        // METRIC PILLS — horizontally scrollable so all six fit on a phone.
+        // METRIC PILLS — horizontally scrollable so all six fit on a phone. Titles are pre-resolved
+        // here (the SegmentedPillControl label lambda is not @Composable) and looked up in the lambda.
+        val metricTitles = TimelineMetric.entries.associateWith { timelineMetricTitle(it) }
         Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
             SegmentedPillControl(
                 items = TimelineMetric.entries.toList(),
                 selection = metric,
-                label = { it.title },
+                label = { metricTitles.getValue(it) },
                 onSelect = { metric = it; window = null },
             )
         }
 
         // SOURCE PILL — the owned strap, with the #574 owned/all scope toggle.
+        val ownedLabel = stringResource(R.string.full_day_chart_owned)
+        val allLabel = stringResource(R.string.full_day_chart_all)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("My WHOOP", style = NoopType.footnote, color = Palette.textSecondary)
+            Text(stringResource(R.string.full_day_chart_my_whoop), style = NoopType.footnote, color = Palette.textSecondary)
             Spacer(Modifier.weight(1f))
             SegmentedPillControl(
                 items = listOf(true, false),
                 selection = ownedOnly,
-                label = { if (it) "Owned" else "All" },
+                label = { if (it) ownedLabel else allLabel },
                 onSelect = { ownedOnly = it },
             )
         }
@@ -162,7 +184,7 @@ fun FullDayChartScreen(vm: AppViewModel, onBack: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.Top) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Overline(metric.title)
+                        Overline(timelineMetricTitle(metric))
                         Text(resolutionSubtitle(points, isRaw, bucketSeconds),
                             style = NoopType.footnote, color = Palette.textTertiary)
                     }
@@ -175,7 +197,7 @@ fun FullDayChartScreen(vm: AppViewModel, onBack: () -> Unit) {
                 Box(modifier = Modifier.fillMaxWidth().height(280.dp), contentAlignment = Alignment.Center) {
                     when {
                         loading && points.isEmpty() ->
-                            Text("Loading the day…", style = NoopType.footnote, color = Palette.textTertiary)
+                            Text(stringResource(R.string.full_day_chart_loading_the_day), style = NoopType.footnote, color = Palette.textTertiary)
                         points.isEmpty() -> EmptyTimelineState(metric, ownedOnly)
                         else -> TimelineChart(
                             points = points,
@@ -192,9 +214,9 @@ fun FullDayChartScreen(vm: AppViewModel, onBack: () -> Unit) {
                 if (points.isNotEmpty()) {
                     val vals = points.map { it.value }
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        TimelineStat("MIN", formatValue(metric, vals.minOrNull() ?: 0.0), Modifier.weight(1f))
-                        TimelineStat("AVG", formatValue(metric, vals.average()), Modifier.weight(1f))
-                        TimelineStat("MAX", formatValue(metric, vals.maxOrNull() ?: 0.0), Modifier.weight(1f))
+                        TimelineStat(stringResource(R.string.full_day_chart_min), formatValue(metric, vals.minOrNull() ?: 0.0), Modifier.weight(1f))
+                        TimelineStat(stringResource(R.string.full_day_chart_avg), formatValue(metric, vals.average()), Modifier.weight(1f))
+                        TimelineStat(stringResource(R.string.full_day_chart_max), formatValue(metric, vals.maxOrNull() ?: 0.0), Modifier.weight(1f))
                     }
                 }
             }
@@ -203,13 +225,13 @@ fun FullDayChartScreen(vm: AppViewModel, onBack: () -> Unit) {
         // ZOOM HINT + reset.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (window == null) "Pinch to zoom · drag to pan" else "Zoomed in — drag to pan",
+                if (window == null) stringResource(R.string.full_day_chart_pinch_to_zoom) else stringResource(R.string.full_day_chart_zoomed_in),
                 style = NoopType.footnote, color = Palette.textTertiary,
             )
             Spacer(Modifier.weight(1f))
             if (window != null) {
                 Text(
-                    "Reset",
+                    stringResource(R.string.today_reset),
                     style = NoopType.footnote,
                     color = Palette.accent,
                     modifier = Modifier.clickable { window = null },
@@ -226,11 +248,11 @@ private fun EmptyTimelineState(metric: TimelineMetric, ownedOnly: Boolean) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.padding(horizontal = 24.dp),
     ) {
-        Text("No ${metric.title.lowercase(Locale.US)} here",
+        Text(stringResource(R.string.full_day_chart_no_metric_here, timelineMetricTitle(metric).lowercase(Locale.US)),
             style = NoopType.body, color = Palette.textSecondary)
         Text(
-            if (ownedOnly) "Nothing offloaded for this window yet."
-            else "Other sources don’t offload raw per-second data on-device.",
+            if (ownedOnly) stringResource(R.string.full_day_chart_nothing_offloaded)
+            else stringResource(R.string.full_day_chart_other_sources_no_raw),
             style = NoopType.footnote, color = Palette.textTertiary, textAlign = TextAlign.Center,
         )
     }
@@ -307,11 +329,14 @@ fun downsampleTimeline(points: List<TimelinePoint>, bucketSeconds: Long): List<T
 
 // MARK: - Presentation
 
+/** Localized resolution subtitle, resolved at the display site (single @Composable caller). */
+@Composable
 private fun resolutionSubtitle(points: List<TimelinePoint>, isRaw: Boolean, bucketSeconds: Long): String {
     if (points.isEmpty()) return "—"
-    if (isRaw) return "Raw · per second"
+    if (isRaw) return stringResource(R.string.full_day_chart_raw_per_second)
     val m = bucketSeconds / 60
-    return if (m >= 1) "$m-minute average" else "${bucketSeconds}-second average"
+    return if (m >= 1) stringResource(R.string.full_day_chart_minute_average, m)
+    else stringResource(R.string.full_day_chart_second_average, bucketSeconds)
 }
 
 private fun metricColor(metric: TimelineMetric): Color = when (metric) {
@@ -342,8 +367,10 @@ private fun dayKeyToEpochSec(day: String): Long? = runCatching {
 }.getOrNull()
 
 /** "Today" / "Yesterday" / "Wed 18 Jun" label for the Deep Timeline day stepper (#597). */
+@Composable
 private fun dayLabel(dayStartSec: Long, todayStart: Long): String = when (dayStartSec) {
-    todayStart -> "Today"
-    todayStart - 86_400 -> "Yesterday"
-    else -> java.text.SimpleDateFormat("EEE d MMM", Locale.US).format(java.util.Date(dayStartSec * 1000))
+    todayStart -> stringResource(R.string.timeline_day_today)
+    todayStart - 86_400 -> stringResource(R.string.timeline_day_yesterday)
+    else -> java.text.SimpleDateFormat(stringResource(R.string.fmt_timeline_day), Locale.getDefault())
+        .format(java.util.Date(dayStartSec * 1000))
 }

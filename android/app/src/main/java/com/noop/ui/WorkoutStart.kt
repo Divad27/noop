@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -78,12 +81,12 @@ fun StartWorkoutSheet(vm: AppViewModel, onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Start a workout") },
+        title = { Text(stringResource(R.string.workoutstart_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = query, onValueChange = { query = it },
-                    label = { Text("Search sport") }, singleLine = true,
+                    label = { Text(stringResource(R.string.workoutstart_search_sport)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Column(
@@ -104,7 +107,7 @@ fun StartWorkoutSheet(vm: AppViewModel, onDismiss: () -> Unit) {
                             )
                             if (sp.isDistanceSport) {
                                 Spacer(Modifier.width(6.dp))
-                                Text("· GPS", style = NoopType.footnote, color = Palette.textTertiary)
+                                Text(stringResource(R.string.workoutstart_gps_tag), style = NoopType.footnote, color = Palette.textTertiary)
                             }
                         }
                     }
@@ -113,7 +116,7 @@ fun StartWorkoutSheet(vm: AppViewModel, onDismiss: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 ) {
-                    Text("Track GPS route", style = NoopType.body, color = Palette.textPrimary)
+                    Text(stringResource(R.string.workoutstart_track_gps_route), style = NoopType.body, color = Palette.textPrimary)
                     Spacer(Modifier.weight(1f))
                     Switch(checked = gpsOn, onCheckedChange = { gpsOn = it })
                 }
@@ -128,11 +131,11 @@ fun StartWorkoutSheet(vm: AppViewModel, onDismiss: () -> Unit) {
                     showLiveWorkout = true
                 }
             }) {
-                Text("Start ${selected.name}")
+                Text(stringResource(R.string.workoutstart_start_sport, selected.name))
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.sleep_cancel)) }
         },
     )
 }
@@ -174,7 +177,7 @@ fun WorkoutStartSection(vm: AppViewModel) {
                     onClick = { showLiveWorkout = true },
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.accent),
-                ) { Text("Open", style = NoopType.captionNumber) }
+                ) { Text(stringResource(R.string.workoutstart_open), style = NoopType.captionNumber) }
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = { vm.endWorkout() },
@@ -182,7 +185,7 @@ fun WorkoutStartSection(vm: AppViewModel) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Palette.statusCritical, contentColor = Palette.surfaceBase,
                     ),
-                ) { Text("End", style = NoopType.captionNumber) }
+                ) { Text(stringResource(R.string.live_end), style = NoopType.captionNumber) }
             }
         }
     } else if (live.bonded) {
@@ -193,7 +196,7 @@ fun WorkoutStartSection(vm: AppViewModel) {
             colors = ButtonDefaults.buttonColors(
                 containerColor = Palette.accent, contentColor = Palette.surfaceBase,
             ),
-        ) { Text("Start workout", style = NoopType.captionNumber) }
+        ) { Text(stringResource(R.string.nav_action_start_workout), style = NoopType.captionNumber) }
     }
 
     if (showSportPicker) {

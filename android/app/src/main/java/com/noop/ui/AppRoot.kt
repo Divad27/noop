@@ -1,5 +1,6 @@
 package com.noop.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -77,6 +78,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -91,6 +93,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.noop.R
 
 // MARK: - Navigation model
 //
@@ -100,58 +103,60 @@ import androidx.navigation.compose.rememberNavController
 // without a global hamburger/drawer. Destinations are grouped exactly as the sidebar groups them.
 // Routes whose screens belong to later waves point at a ComingSoon placeholder so the app compiles today.
 
-/** A single drawer destination: stable route, display title, sidebar icon. */
+/** A single drawer destination: stable route, display title (a string resource), sidebar icon.
+ *  The title is a [StringRes] because the enum constructor is top-level / non-composable, so
+ *  [stringResource] cannot be called here — it is resolved at the composable call sites. */
 private enum class Destination(
     val route: String,
-    val title: String,
+    @StringRes val titleRes: Int,
     val icon: ImageVector,
 ) {
     // Group: Today
-    Today("today", "Today", Icons.Filled.Home),
-    Intelligence("intelligence", "Intelligence", Icons.Filled.Psychology),
+    Today("today", R.string.nav_today, Icons.Filled.Home),
+    Intelligence("intelligence", R.string.nav_intelligence, Icons.Filled.Psychology),
 
     // Group: Live
-    Live("live", "Live", Icons.Filled.FavoriteBorder),
-    Intervals("intervals", "Intervals", Icons.Filled.Timeline),
+    Live("live", R.string.nav_live, Icons.Filled.FavoriteBorder),
+    Intervals("intervals", R.string.nav_intervals, Icons.Filled.Timeline),
 
     // Group: Recovery
-    Sleep("sleep", "Sleep", Icons.Filled.Bedtime),
-    Breathe("breathe", "Breathe", Icons.Filled.Air),
-    Stress("stress", "Stress", Icons.Filled.Spa),
+    Sleep("sleep", R.string.nav_sleep, Icons.Filled.Bedtime),
+    Breathe("breathe", R.string.nav_breathe, Icons.Filled.Air),
+    Stress("stress", R.string.nav_stress, Icons.Filled.Spa),
 
     // Group: Activity
-    Workouts("workouts", "Workouts", Icons.Filled.FitnessCenter),
-    Trends("trends", "Trends", Icons.AutoMirrored.Filled.TrendingUp),
+    Workouts("workouts", R.string.nav_workouts, Icons.Filled.FitnessCenter),
+    Trends("trends", R.string.nav_trends, Icons.AutoMirrored.Filled.TrendingUp),
 
     // Group: Insight
-    Coach("coach", "Coach", Icons.Filled.AutoAwesome),
-    InsightsHub("insights_hub", "What Moves You", Icons.Filled.Insights),
-    Insights("insights", "Insights", Icons.Filled.Insights),
-    Explore("explore", "Explore", Icons.Filled.Explore),
-    Compare("compare", "Compare", Icons.AutoMirrored.Filled.CompareArrows),
+    Coach("coach", R.string.nav_coach, Icons.Filled.AutoAwesome),
+    InsightsHub("insights_hub", R.string.nav_insights_hub, Icons.Filled.Insights),
+    Insights("insights", R.string.nav_insights, Icons.Filled.Insights),
+    Explore("explore", R.string.nav_explore, Icons.Filled.Explore),
+    Compare("compare", R.string.nav_compare, Icons.AutoMirrored.Filled.CompareArrows),
 
     // Group: Health
-    Health("health", "Health", Icons.Filled.MonitorHeart),
-    Hydration("hydration", "Hydration", Icons.Filled.WaterDrop),
-    VitalSigns("vital_signs", "Vital Signs", Icons.Filled.HealthAndSafety),
-    VitalSignsDetail("vital_detail/{key}", "Vital Signs", Icons.Filled.HealthAndSafety),
-    LabBook("lab_book", "Lab Book", Icons.Filled.HealthAndSafety),
-    Rhythm("rhythm", "Rhythm", Icons.Filled.MonitorHeart),
-    AppleHealth("apple_health", "Apple Health", Icons.Filled.HealthAndSafety),
+    Health("health", R.string.nav_health, Icons.Filled.MonitorHeart),
+    Hydration("hydration", R.string.hydration_title, Icons.Filled.WaterDrop),
+    VitalSigns("vital_signs", R.string.nav_vital_signs, Icons.Filled.HealthAndSafety),
+    VitalSignsDetail("vital_detail/{key}", R.string.nav_vital_signs, Icons.Filled.HealthAndSafety),
+    LabBook("lab_book", R.string.nav_lab_book, Icons.Filled.HealthAndSafety),
+    Rhythm("rhythm", R.string.nav_rhythm, Icons.Filled.MonitorHeart),
+    AppleHealth("apple_health", R.string.nav_apple_health, Icons.Filled.HealthAndSafety),
 
     // Group: System
-    Automations("automations", "Automations", Icons.Filled.Bolt),
-    SmartAlarm("smart_alarm", "Smart Alarm", Icons.Filled.Alarm),
-    Devices("devices", "Devices", Icons.Filled.Sensors),
-    DataSources("data_sources", "Data Sources", Icons.Filled.Storage),
-    FusedRecord("fused_record", "Your Data, Fused", Icons.AutoMirrored.Filled.CompareArrows),
-    Notifications("notifications", "Notifications", Icons.Filled.Notifications),
-    Support("support", "Support", Icons.Filled.Tune),
-    Settings("settings", "Settings", Icons.Filled.Settings),
+    Automations("automations", R.string.nav_automations, Icons.Filled.Bolt),
+    SmartAlarm("smart_alarm", R.string.nav_smart_alarm, Icons.Filled.Alarm),
+    Devices("devices", R.string.nav_devices, Icons.Filled.Sensors),
+    DataSources("data_sources", R.string.nav_data_sources, Icons.Filled.Storage),
+    FusedRecord("fused_record", R.string.nav_fused_record, Icons.AutoMirrored.Filled.CompareArrows),
+    Notifications("notifications", R.string.nav_notifications, Icons.Filled.Notifications),
+    Support("support", R.string.nav_support, Icons.Filled.Tune),
+    Settings("settings", R.string.nav_settings, Icons.Filled.Settings),
 
     // The "More" tab: its own navigated page (mirroring the iOS More tab) that hosts the full
     // grouped destination list. It is NOT itself in any [DrawerGroup] — it's the door to them.
-    More("more", "More", Icons.Filled.MoreHoriz);
+    More("more", R.string.nav_more, Icons.Filled.MoreHoriz);
 
     companion object {
         /** Resolve the destination owning the current back-stack route (defaults to Today). */
@@ -164,26 +169,27 @@ private enum class Destination(
     }
 }
 
-/** More-page groups, mirroring the iOS More tab exactly: Insights · Body · Data · App. */
-private data class DrawerGroup(val header: String, val items: List<Destination>)
+/** More-page groups, mirroring the iOS More tab exactly: Insights · Body · Data · App.
+ *  The header is a [StringRes] — this is a top-level val, so it is resolved at the call site. */
+private data class DrawerGroup(@StringRes val headerRes: Int, val items: List<Destination>)
 
 // Mirrors the iOS RootTabView `moreTab` grouping + order one-for-one. Today / Trends / Sleep are NOT
 // listed (they're bottom-bar tabs, exactly as on iOS). Android-only screens (Vital Signs, Smart Alarm,
 // Notifications, Devices) are slotted into the matching iOS group.
 private val drawerGroups: List<DrawerGroup> = listOf(
-    DrawerGroup("Insights", listOf(
+    DrawerGroup(R.string.nav_more_group_insights, listOf(
         Destination.InsightsHub, Destination.Intelligence, Destination.Coach,
         Destination.Insights, Destination.Explore, Destination.Compare,
     )),
-    DrawerGroup("Body", listOf(
+    DrawerGroup(R.string.nav_more_group_body, listOf(
         Destination.Live, Destination.Workouts, Destination.Health, Destination.VitalSigns,
         Destination.LabBook, Destination.Stress, Destination.Breathe, Destination.Intervals,
         Destination.Rhythm,
     )),
-    DrawerGroup("Data", listOf(
+    DrawerGroup(R.string.nav_more_group_data, listOf(
         Destination.FusedRecord, Destination.AppleHealth, Destination.DataSources, Destination.Devices,
     )),
-    DrawerGroup("App", listOf(
+    DrawerGroup(R.string.nav_more_group_app, listOf(
         Destination.Automations, Destination.SmartAlarm, Destination.Notifications,
         Destination.Settings, Destination.Support,
     )),
@@ -353,7 +359,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         .padding(bottom = 24.dp),
                 ) {
                     Overline(
-                        "Quick actions",
+                        stringResource(R.string.nav_quick_actions),
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 6.dp),
                         color = Palette.textTertiary,
                     )
@@ -367,7 +373,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                                 }
                             },
                             icon = { Icon(action.icon, contentDescription = null) },
-                            label = { Text(action.title, style = NoopType.body) },
+                            label = { Text(stringResource(action.titleRes), style = NoopType.body) },
                             colors = NavigationDrawerItemDefaults.colors(
                                 unselectedContainerColor = Palette.surfaceRaised,
                                 unselectedIconColor = Palette.accent,
@@ -431,15 +437,15 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
 @Composable
 private fun MoreScreen(onNavigate: (String) -> Unit) {
     ScreenScaffold(
-        title = "More",
-        subtitle = "Everything else, one tap away",
+        title = stringResource(R.string.nav_more),
+        subtitle = stringResource(R.string.comp_more_subtitle),
     ) {
         // Mirror the iOS More page: each group is an UPPERCASE overline label over a single grouped
         // white NoopCard whose rows are tight (accent icon + title + chevron) and separated by inset
         // hairlines — NOT loose NavigationDrawerItems floating on the bare surface.
         drawerGroups.forEach { group ->
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Overline(group.header, color = Palette.textTertiary)
+                Overline(stringResource(group.headerRes), color = Palette.textTertiary)
                 NoopCard(padding = 0.dp) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         group.items.forEachIndexed { i, dest ->
@@ -471,7 +477,7 @@ private fun MoreRow(dest: Destination, onClick: () -> Unit) {
     ) {
         Icon(dest.icon, contentDescription = null, tint = Palette.accent, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(14.dp))
-        Text(dest.title, style = NoopType.body, color = Palette.textPrimary, modifier = Modifier.weight(1f))
+        Text(stringResource(dest.titleRes), style = NoopType.body, color = Palette.textPrimary, modifier = Modifier.weight(1f))
         Icon(
             Icons.Filled.ChevronRight,
             contentDescription = null,
@@ -491,18 +497,19 @@ private fun MoreRow(dest: Destination, onClick: () -> Unit) {
 // active = gold accent, inactive = textSecondary. All routing is unchanged: the four tabs switch the
 // same destinations.
 
-/** A single bottom-bar nav slot: the destination it switches to, plus the bar-specific icon/label. */
-private data class BarTab(val dest: Destination, val icon: ImageVector, val label: String)
+/** A single bottom-bar nav slot: the destination it switches to, plus the bar-specific icon/label.
+ *  The label is a [StringRes] — these are top-level vals, resolved at the composable call site. */
+private data class BarTab(val dest: Destination, val icon: ImageVector, @StringRes val labelRes: Int)
 
 /** The nav slots in iOS order: Today · Trends · Sleep · More.
  *  More is special-cased (it opens the sheet rather than a route), so it is appended at the call site. */
 private val barLeadingTabs = listOf(
-    BarTab(Destination.Today, Icons.Outlined.GridView, "Today"),
+    BarTab(Destination.Today, Icons.Outlined.GridView, R.string.nav_today),
     // chart.line.uptrend.xyaxis on iOS — the rising-trend glyph, not a flat bar chart.
-    BarTab(Destination.Trends, Icons.AutoMirrored.Filled.TrendingUp, "Trends"),
+    BarTab(Destination.Trends, Icons.AutoMirrored.Filled.TrendingUp, R.string.nav_trends),
 )
 private val barTrailingTabs = listOf(
-    BarTab(Destination.Sleep, Icons.Filled.Bedtime, "Sleep"),
+    BarTab(Destination.Sleep, Icons.Filled.Bedtime, R.string.nav_sleep),
 )
 
 @Composable
@@ -546,7 +553,7 @@ private fun GlassBottomBar(
                 barLeadingTabs.forEach { tab ->
                     BarSlot(
                         icon = tab.icon,
-                        label = tab.label,
+                        label = stringResource(tab.labelRes),
                         active = current == tab.dest,
                         modifier = Modifier.weight(1f),
                         onClick = { onTabSelected(tab.dest) },
@@ -555,7 +562,7 @@ private fun GlassBottomBar(
                 barTrailingTabs.forEach { tab ->
                     BarSlot(
                         icon = tab.icon,
-                        label = tab.label,
+                        label = stringResource(tab.labelRes),
                         active = current == tab.dest,
                         modifier = Modifier.weight(1f),
                         onClick = { onTabSelected(tab.dest) },
@@ -563,7 +570,7 @@ private fun GlassBottomBar(
                 }
                 BarSlot(
                     icon = Icons.Filled.MoreHoriz,
-                    label = "More",
+                    label = stringResource(R.string.nav_more),
                     // Selected on the More page itself, and also kept lit whenever the current screen is
                     // one reached THROUGH More (i.e. not one of the bar's own three tabs) — so drilling
                     // into any grouped destination still reads as "you're in More", never "nowhere".
@@ -613,16 +620,17 @@ private fun BarSlot(
     }
 }
 
-/** A centre-FAB quick action: a display title, an icon and the destination route it opens. */
-private data class QuickAction(val title: String, val icon: ImageVector, val route: String)
+/** A centre-FAB quick action: a display title (a string resource), an icon and the destination route
+ *  it opens. The title is a [StringRes] — this is a top-level val, resolved at the composable call site. */
+private data class QuickAction(@StringRes val titleRes: Int, val icon: ImageVector, val route: String)
 
 /** The quick actions on the gold centre FAB, each routing to an existing destination. Live HR leads
  *  — it moved off the bottom bar (so the FAB no longer overlaps a tab) but stays one tap away here. */
 private val quickActions: List<QuickAction> = listOf(
-    QuickAction("Live HR", Destination.Live.icon, Destination.Live.route),
-    QuickAction("Start workout", Icons.Filled.FitnessCenter, Destination.Workouts.route),
-    QuickAction("Log journal", Icons.Filled.Edit, Destination.Insights.route),
-    QuickAction("Breathe", Icons.Filled.Air, Destination.Breathe.route),
+    QuickAction(R.string.nav_action_live_hr, Destination.Live.icon, Destination.Live.route),
+    QuickAction(R.string.nav_action_start_workout, Icons.Filled.FitnessCenter, Destination.Workouts.route),
+    QuickAction(R.string.nav_action_log_journal, Icons.Filled.Edit, Destination.Insights.route),
+    QuickAction(R.string.nav_breathe, Icons.Filled.Air, Destination.Breathe.route),
 )
 
 // MARK: - Navigation motion (README §Motion)
@@ -727,9 +735,9 @@ fun ComingSoon(text: String, modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(text, style = NoopType.title2, color = Palette.textPrimary, textAlign = TextAlign.Center)
-                Overline("Coming soon", color = Palette.textSecondary)
+                Overline(stringResource(R.string.coming_soon_title), color = Palette.textSecondary)
                 Text(
-                    "This section is on the way.",
+                    stringResource(R.string.coming_soon_body),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                     textAlign = TextAlign.Center,

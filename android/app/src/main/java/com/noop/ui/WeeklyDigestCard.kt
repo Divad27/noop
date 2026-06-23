@@ -1,5 +1,9 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -110,13 +114,15 @@ fun WeeklyDigestCard(vm: AppViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun WeeklyDigestScreen(vm: AppViewModel) {
     val days by vm.recentDays.collectAsStateWithLifecycle()
-    ScreenScaffold(title = "Week in review", subtitle = "Your Monday-to-Sunday, read in one glance.") {
+    ScreenScaffold(
+        title = stringResource(R.string.digest_screen_title),
+        subtitle = stringResource(R.string.digest_screen_subtitle),
+    ) {
         val digest = buildWeeklyDigest(days)
         if (digest.isEmpty) {
             DataPendingNote(
-                title = "No readings this week yet",
-                body = "Wear your strap or import your WHOOP export in Data Sources. Once this week has a " +
-                    "day or two of data, your week-in-review appears here.",
+                title = stringResource(R.string.digest_empty_title),
+                body = stringResource(R.string.digest_empty_body),
             )
         } else {
             NoopCard { WeeklyDigestContent(digest = digest, compact = false) }
@@ -126,9 +132,8 @@ fun WeeklyDigestScreen(vm: AppViewModel) {
 
 // MARK: - Shared content
 
-private val MONTHS = arrayOf(
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-)
+private val MONTHS: Array<String> =
+    java.text.DateFormatSymbols.getInstance(java.util.Locale.getDefault()).shortMonths
 
 private val DISPLAY_ORDER = listOf(
     WeeklyMetric.CHARGE, WeeklyMetric.EFFORT, WeeklyMetric.REST, WeeklyMetric.HRV, WeeklyMetric.RHR,
@@ -147,23 +152,26 @@ fun WeeklyDigestContent(digest: WeeklyDigest, compact: Boolean = false) {
             verticalAlignment = Alignment.Top,
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Overline("Week in review")
+                Overline(stringResource(R.string.digest_overline))
                 Text(weekRangeLabel(digest), style = NoopType.title2, color = Palette.textPrimary)
             }
+            val daysA11y = stringResource(R.string.digest_days_with_data_a11y, digest.daysWithData)
             Text(
-                "${digest.daysWithData}/7 days",
+                stringResource(R.string.digest_days_with_data, digest.daysWithData),
                 style = NoopType.footnote,
                 color = Palette.textSecondary,
                 modifier = Modifier.semantics {
-                    contentDescription = "${digest.daysWithData} of 7 days had data this week"
+                    contentDescription = daysA11y
                 },
             )
         }
 
-        // Focal points — the plain-English read, most salient first.
-        if (digest.focalPoints.isNotEmpty()) {
+        // Focal points — the plain-English read, most salient first. Re-derived in the UI
+        // locale (the engine emits already-built English sentences we can't translate opaquely).
+        val focals = localizedFocalPoints(digest)
+        if (focals.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                digest.focalPoints.forEach { FocalRow(it) }
+                focals.forEach { FocalRow(it) }
             }
         }
 
@@ -181,14 +189,14 @@ fun WeeklyDigestContent(digest: WeeklyDigest, compact: Boolean = false) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 digest.sleepConsistencySD?.let { sd ->
                     Text(
-                        "Sleep steadiness: Rest varied ±${fmt1(sd)} pts night to night.",
+                        stringResource(R.string.digest_sleep_steadiness, fmt1(sd)),
                         style = NoopType.footnote,
                         color = Palette.textTertiary,
                     )
                 }
-                Text(digest.balance.sentence, style = NoopType.footnote, color = Palette.textTertiary)
+                Text(balanceSentence(digest.balance), style = NoopType.footnote, color = Palette.textTertiary)
                 Text(
-                    "Informational only — not medical advice.",
+                    stringResource(R.string.digest_disclaimer),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
@@ -216,15 +224,16 @@ private fun FocalRow(line: String) {
 
 @Composable
 private fun MetricRow(s: WeeklyMetricSummary) {
+    val rowA11y = rowAccessibility(s)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics(mergeDescendants = true) { contentDescription = rowAccessibility(s) },
+            .semantics(mergeDescendants = true) { contentDescription = rowA11y },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            s.metric.label,
+            metricLabel(s.metric),
             style = NoopType.subhead,
             color = Palette.textSecondary,
             modifier = Modifier.width(92.dp),
@@ -279,8 +288,11 @@ private fun meanText(s: WeeklyMetricSummary): String {
     return if (s.metric.unit.isEmpty()) "$v" else "$v ${s.metric.unit}"
 }
 
+@Composable
 private fun deltaText(s: WeeklyMetricSummary): String {
-    if (s.weekOverWeek.current.n == 0 || s.weekOverWeek.previous.n == 0) return "new"
+    if (s.weekOverWeek.current.n == 0 || s.weekOverWeek.previous.n == 0) {
+        return stringResource(R.string.digest_delta_new)
+    }
     val pct = s.weekOverWeek.pctChange
     return if (pct != null && abs(pct) >= 1) "${abs(pct).roundToInt()}%" else fmt1(abs(s.wowDelta))
 }
@@ -295,18 +307,139 @@ private fun chipTone(s: WeeklyMetricSummary): Color = when (s.wowGoodness) {
     else -> Palette.textTertiary
 }
 
+@Composable
 private fun rowAccessibility(s: WeeklyMetricSummary): String {
+    val label = metricLabel(s.metric)
     val mean = meanText(s)
     if (s.weekOverWeek.current.n == 0 || s.weekOverWeek.previous.n == 0) {
-        return "${s.metric.label}: $mean this week, no comparison."
+        return stringResource(R.string.digest_row_a11y_no_comparison, label, mean)
     }
-    val dir = if (s.wowDelta > 0) "up" else if (s.wowDelta < 0) "down" else "unchanged"
+    val magnitude = deltaText(s)
+    val base = when {
+        s.wowDelta > 0 -> stringResource(R.string.digest_row_a11y_up, label, mean, magnitude)
+        s.wowDelta < 0 -> stringResource(R.string.digest_row_a11y_down, label, mean, magnitude)
+        else -> stringResource(R.string.digest_row_a11y_unchanged, label, mean)
+    }
     val frame = when (s.wowGoodness) {
-        1 -> ", a good sign"
-        -1 -> ", worth a look"
+        1 -> ", " + stringResource(R.string.digest_frame_a11y_good)
+        -1 -> ", " + stringResource(R.string.digest_frame_a11y_bad)
         else -> ""
     }
-    return "${s.metric.label}: $mean this week, $dir ${deltaText(s)} week over week$frame."
+    return "$base$frame."
 }
 
-private fun fmt1(x: Double): String = ((x * 10).roundToInt() / 10.0).toString()
+private fun fmt1(x: Double): String {
+    val s = ((x * 10).roundToInt() / 10.0).toString()
+    val sep = java.text.DecimalFormatSymbols.getInstance(java.util.Locale.getDefault()).decimalSeparator
+    return if (sep == '.') s else s.replace('.', sep)
+}
+
+// MARK: - Localized resolvers
+//
+// The engine (analytics/WeeklyDigest.kt) is a canonical en-US oracle: its enum labels,
+// BalanceRead.sentence and focalPoints() emit English. We re-resolve those at the render
+// site against the UI locale so the digest matches the German domain terms used elsewhere.
+
+/** Maps a metric to its UI-locale domain label (the same terms the Today screen uses). */
+@Composable
+private fun metricLabel(metric: WeeklyMetric): String = stringResource(
+    when (metric) {
+        WeeklyMetric.CHARGE -> R.string.today_charge
+        WeeklyMetric.EFFORT -> R.string.today_effort
+        WeeklyMetric.REST -> R.string.today_rest
+        WeeklyMetric.RHR -> R.string.today_resting_hr
+        WeeklyMetric.HRV -> R.string.today_hrv
+    },
+)
+
+/** Maps a balance read to its UI-locale sentence (mirrors BalanceRead.sentence). */
+@Composable
+private fun balanceSentence(balance: BalanceRead): String = stringResource(
+    when (balance) {
+        BalanceRead.OVERREACHING -> R.string.digest_balance_overreaching
+        BalanceRead.BALANCED -> R.string.digest_balance_balanced
+        BalanceRead.UNDERLOADED -> R.string.digest_balance_underloaded
+        BalanceRead.INSUFFICIENT -> R.string.digest_balance_insufficient
+    },
+)
+
+private fun round1(x: Double): Double = (x * 10).roundToInt() / 10.0
+
+/** Format a 1-decimal value with the UI locale's decimal separator (e.g. German comma). */
+private fun localizedDecimal(x: Double): String {
+    val v = round1(x)
+    val sep = java.text.DecimalFormatSymbols.getInstance(java.util.Locale.getDefault()).decimalSeparator
+    return v.toString().replace('.', sep)
+}
+
+/**
+ * Re-derives the engine's focalPoints() selection in the UI locale. Mirrors
+ * WeeklyDigestEngine.focalPoints(): same mover filter/sort, same balance/second-mover/
+ * fallback ladder, capped to two lines — but emits German via the string templates.
+ */
+@Composable
+private fun localizedFocalPoints(digest: WeeklyDigest): List<String> {
+    val movers = digest.metrics
+        .filter {
+            it.weekOverWeek.current.n >= WeeklyDigestEngine.MIN_DAYS_FOR_FOCUS &&
+                it.weekOverWeek.previous.n >= WeeklyDigestEngine.MIN_DAYS_FOR_FOCUS &&
+                abs(it.normalisedMove) >= WeeklyDigestEngine.FOCUS_THRESHOLD
+        }
+        .sortedByDescending { abs(it.normalisedMove) }
+
+    val lines = mutableListOf<String>()
+
+    movers.firstOrNull()?.let { lines.add(moverSentenceDe(it)) }
+
+    if (digest.balance == BalanceRead.OVERREACHING || digest.balance == BalanceRead.UNDERLOADED) {
+        lines.add(balanceSentence(digest.balance))
+    } else if (movers.size >= 2) {
+        lines.add(moverSentenceDe(movers[1]))
+    }
+
+    if (lines.isEmpty()) {
+        val currentDays = digest.metrics.maxOfOrNull { it.weekOverWeek.current.n } ?: 0
+        if (currentDays in 1 until WeeklyDigestEngine.MIN_DAYS_FOR_FOCUS) {
+            lines.add(pluralStringResource(R.plurals.digest_focal_too_early, currentDays, currentDays))
+        } else {
+            val sd = digest.sleepConsistencySD
+            if (sd != null && sd <= 6.0) {
+                lines.add(stringResource(R.string.digest_focal_steady_even, fmt1(sd)))
+            } else {
+                lines.add(stringResource(R.string.digest_focal_steady_plain))
+            }
+        }
+    }
+
+    return lines.take(2)
+}
+
+/** One mover as a UI-locale sentence with good/bad framing. Mirrors engine moverSentence(). */
+@Composable
+private fun moverSentenceDe(s: WeeklyMetricSummary): String {
+    val pct = s.weekOverWeek.pctChange
+    val magnitude = if (pct != null && abs(pct) >= 1) {
+        "${abs(pct).roundToInt()}%"
+    } else {
+        val suffix = if (s.metric.unit.isEmpty()) {
+            " " + stringResource(R.string.digest_unit_pts)
+        } else {
+            " ${s.metric.unit}"
+        }
+        "${localizedDecimal(abs(s.wowDelta))}$suffix"
+    }
+    val thisAvg = s.thisWeek.mean.roundToInt()
+    val lastAvg = s.weekOverWeek.previous.mean.roundToInt()
+    val label = metricLabel(s.metric)
+    val base = when {
+        s.wowDelta > 0 -> stringResource(R.string.digest_focal_mover_up, label, magnitude, thisAvg, lastAvg)
+        s.wowDelta < 0 -> stringResource(R.string.digest_focal_mover_down, label, magnitude, thisAvg, lastAvg)
+        else -> stringResource(R.string.digest_focal_mover_flat, label, thisAvg, lastAvg)
+    }
+    val frame = when (s.wowGoodness) {
+        1 -> " — " + stringResource(R.string.digest_frame_good)
+        -1 -> " — " + stringResource(R.string.digest_frame_bad)
+        else -> ""
+    }
+    return "$base$frame."
+}

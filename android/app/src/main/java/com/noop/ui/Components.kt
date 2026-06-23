@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.animateFloat
@@ -221,10 +224,10 @@ fun SyncingHistoryNote(chunks: Int, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        StatePill("Syncing strap history…", tone = StrandTone.Accent, pulsing = true)
+        StatePill(stringResource(R.string.comp_syncing_strap_history), tone = StrandTone.Accent, pulsing = true)
         if (chunks > 0) {
             Text(
-                "$chunks chunks pulled",
+                stringResource(R.string.comp_chunks_pulled, chunks),
                 style = NoopType.footnote,
                 color = Palette.textSecondary,
             )
@@ -971,7 +974,7 @@ fun RecoveryRing(
         stops = Palette.recoveryStops,
         tipColor = Palette.recoveryColor(score),
         numberText = valueFormat?.invoke(score) ?: score.toInt().toString(),
-        stateText = Palette.recoveryState(score),
+        stateText = recoveryStateLabel(score),
         supporting = supporting,
         diameter = diameter,
         lineWidth = lineWidth,
@@ -1017,7 +1020,7 @@ fun StrainGauge(
         tipColor = Palette.effortTint(fraction),
         numberText = valueText
             ?: if (clamped % 1.0 == 0.0) clamped.toInt().toString() else String.format(java.util.Locale.US, "%.1f", clamped),
-        captionText = "of ${outOf.toInt()}",
+        captionText = stringResource(R.string.comp_strain_of_max, outOf.toInt()),
         diameter = diameter,
         lineWidth = lineWidth,
         showsLabel = showsLabel,
@@ -1343,8 +1346,8 @@ fun StepperField(
         if (unit != null) {
             Text(unit, style = NoopType.caption, color = Palette.textTertiary)
         }
-        StepperButton(symbol = "−", onClick = onMinus, label = "Decrease $accessibility")
-        StepperButton(symbol = "+", onClick = onPlus, label = "Increase $accessibility")
+        StepperButton(symbol = "−", onClick = onMinus, label = stringResource(R.string.comp_stepper_decrease, accessibility))
+        StepperButton(symbol = "+", onClick = onPlus, label = stringResource(R.string.comp_stepper_increase, accessibility))
     }
 }
 

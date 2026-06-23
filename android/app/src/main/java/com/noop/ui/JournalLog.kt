@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -187,9 +190,9 @@ fun JournalLogCard(
             // with Edit + the three day chips on the right, SectionHeader's wrapping title squeezed
             // "Journal" onto two lines (#443). Same tokens as SectionHeader (Overline + title2).
             Column(modifier = Modifier.weight(1f)) {
-                Overline("Log")
+                Overline(stringResource(R.string.journal_section_overline))
                 Text(
-                    "Journal",
+                    stringResource(R.string.journal_section_title),
                     style = NoopType.title2,
                     color = Palette.textPrimary,
                     maxLines = 1,
@@ -198,33 +201,25 @@ fun JournalLogCard(
                 )
             }
             if (editing) {
-                JournalChip("Done", selected = true) { editing = false }
+                JournalChip(stringResource(R.string.journal_done), selected = true) { editing = false }
             } else {
-                JournalChip("Edit", selected = false) { editing = true }
+                JournalChip(stringResource(R.string.journal_edit), selected = false) { editing = true }
                 Spacer(Modifier.width(6.dp))
                 // Chronological left→right: Yesterday · Today · Tomorrow (#443).
-                JournalChip("Yesterday", selected = dayOffset == 1L) { onDayOffset(1L) }
+                JournalChip(stringResource(R.string.journal_yesterday), selected = dayOffset == 1L) { onDayOffset(1L) }
                 Spacer(Modifier.width(6.dp))
-                JournalChip("Today", selected = dayOffset == 0L) { onDayOffset(0L) }
+                JournalChip(stringResource(R.string.journal_today), selected = dayOffset == 0L) { onDayOffset(0L) }
                 Spacer(Modifier.width(6.dp))
-                JournalChip("Tomorrow", selected = dayOffset == -1L) { onDayOffset(-1L) }
+                JournalChip(stringResource(R.string.journal_tomorrow), selected = dayOffset == -1L) { onDayOffset(-1L) }
             }
         }
         NoopCard {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     when {
-                        editing ->
-                            "Remove a question to tidy your list. Custom questions are deleted; the " +
-                                "built-in ones are hidden and can be restored below."
-                        dayOffset == -1L ->
-                            "Logging ahead for tomorrow: today's activities inform tomorrow's " +
-                                "recovery, just as yesterday's are reflected in today's. Tomorrow's " +
-                                "answers line up with tomorrow's morning."
-                        else ->
-                            "Answers are about the night and day leading into this morning — the " +
-                                "same attribution a WHOOP export uses, so logged and imported days " +
-                                "line up."
+                        editing -> stringResource(R.string.journal_edit_hint)
+                        dayOffset == -1L -> stringResource(R.string.journal_tomorrow_hint)
+                        else -> stringResource(R.string.journal_today_hint)
                     },
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
@@ -243,11 +238,11 @@ fun JournalLogCard(
                         if (editing) {
                             JournalRemoveButton(isCustom = isCustom(q)) { onRemoveQuestion(q) }
                         } else {
-                            JournalChip("Yes", selected = answers[q] == true) {
+                            JournalChip(stringResource(R.string.journal_yes), selected = answers[q] == true) {
                                 if (answers[q] == true) onClear(q) else onAnswer(q, true)
                             }
                             Spacer(Modifier.width(6.dp))
-                            JournalChip("No", selected = answers[q] == false) {
+                            JournalChip(stringResource(R.string.journal_no), selected = answers[q] == false) {
                                 if (answers[q] == false) onClear(q) else onAnswer(q, false)
                             }
                         }
@@ -256,14 +251,14 @@ fun JournalLogCard(
                 // Hidden built-in questions — only while editing, each with a restore action.
                 if (editing && hidden.isNotEmpty()) {
                     JournalDivider()
-                    Text("Hidden", style = NoopType.caption, color = Palette.textTertiary)
+                    Text(stringResource(R.string.journal_hidden), style = NoopType.caption, color = Palette.textTertiary)
                     hidden.forEach { q ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(q, style = NoopType.body, color = Palette.textTertiary, modifier = Modifier.weight(1f))
-                            JournalChip("Restore", selected = false) { onRestoreQuestion(q) }
+                            JournalChip(stringResource(R.string.journal_restore), selected = false) { onRestoreQuestion(q) }
                         }
                     }
                 }
@@ -274,7 +269,7 @@ fun JournalLogCard(
                         value = draft,
                         onValueChange = { draft = it },
                         placeholder = {
-                            Text("Add a custom question…", style = NoopType.body, color = Palette.textTertiary)
+                            Text(stringResource(R.string.journal_add_placeholder), style = NoopType.body, color = Palette.textTertiary)
                         },
                         singleLine = true,
                         textStyle = NoopType.body,
@@ -283,7 +278,7 @@ fun JournalLogCard(
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(8.dp))
-                    JournalChip("Add", selected = draft.isNotBlank()) {
+                    JournalChip(stringResource(R.string.journal_add), selected = draft.isNotBlank()) {
                         val t = draft.trim()
                         if (t.isNotEmpty()) {
                             onAddCustom(t)
@@ -331,7 +326,7 @@ private fun JournalChip(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun JournalRemoveButton(isCustom: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     Text(
-        if (isCustom) "Delete" else "Hide",
+        if (isCustom) stringResource(R.string.journal_delete) else stringResource(R.string.journal_hide),
         style = NoopType.caption,
         color = Palette.statusCritical,
         modifier = Modifier

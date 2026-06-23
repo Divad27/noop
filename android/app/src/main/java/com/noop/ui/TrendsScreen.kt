@@ -26,12 +26,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noop.R
 import com.noop.data.DailyMetric
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -94,7 +96,18 @@ fun TrendsScreen(vm: AppViewModel) {
     }
     val recAvg = recovery.values.averageOrNull()
 
-    LazyScreenScaffold(title = "Trends", subtitle = "The thread of you over time.") {
+    // Hoisted above the lazy scaffold (and its item{}/semantics{} lambdas): range labels + the
+    // localized window subtitle + caption must resolve in @Composable scope, which the
+    // LazyListScope content lambdas are not (SegmentedPillControl's `label` lambda isn't @Composable
+    // either). No-ops over empty `days`.
+    val rangeLabels = rememberRangeShortLabels(TrendsRange.entries.toList()) { it.label }
+    val rangeSubtitle = trendsRangeSubtitle(range)
+    val recoveryCaption = trendsCaption(recovery, range)
+
+    LazyScreenScaffold(
+        title = stringResource(R.string.trends_title),
+        subtitle = stringResource(R.string.trends_subtitle),
+    ) {
         if (days.isEmpty()) {
             item { EmptyTrends() }
             return@LazyScreenScaffold
@@ -132,14 +145,14 @@ fun TrendsScreen(vm: AppViewModel) {
                     SegmentedPillControl(
                         items = TrendsRange.entries.toList(),
                         selection = range,
-                        label = { it.label },
+                        label = { rangeLabels.getValue(it) },
                         onSelect = { range = it },
                     )
                     Spacer(Modifier.weight(1f))
-                    Overline(range.subtitle, color = Palette.textTertiary)
+                    Overline(rangeSubtitle, color = Palette.textTertiary)
                 }
                 Text(
-                    recovery.caption,
+                    recoveryCaption,
                     style = NoopType.footnote,
                     color = if (recovery.widened) Palette.statusWarning else Palette.textTertiary,
                 )
@@ -151,10 +164,10 @@ fun TrendsScreen(vm: AppViewModel) {
         item {
             ChartCard(
                 modifier = Modifier.staggeredAppear(index = 3),
-                title = "Charge",
+                title = stringResource(R.string.trends_charge),
                 // The range bar above already prints the authoritative reading-count caption;
                 // the hero only names its window so the count isn't doubled in one card height.
-                subtitle = range.subtitle,
+                subtitle = rangeSubtitle,
                 trailing = recAvg?.let { "${it.roundToInt()}" },
                 color = Palette.chargeColor,
                 tipColor = Palette.chargeBright,
@@ -169,10 +182,10 @@ fun TrendsScreen(vm: AppViewModel) {
                 // mirrors the iOS hero's `valueRange: 0...106`.
                 chartHeadroom = 0.06f,
                 footer = listOf(
-                    "Avg" to (recAvg?.let { "${it.roundToInt()}" } ?: EM_DASH),
-                    "Peak" to (recovery.values.maxOrNull()?.let { "${it.roundToInt()}" } ?: EM_DASH),
-                    "Low" to (recovery.values.minOrNull()?.let { "${it.roundToInt()}" } ?: EM_DASH),
-                    "Days" to "${recovery.values.size}",
+                    stringResource(R.string.trends_stat_avg) to (recAvg?.let { "${it.roundToInt()}" } ?: EM_DASH),
+                    stringResource(R.string.trends_stat_peak) to (recovery.values.maxOrNull()?.let { "${it.roundToInt()}" } ?: EM_DASH),
+                    stringResource(R.string.trends_stat_low) to (recovery.values.minOrNull()?.let { "${it.roundToInt()}" } ?: EM_DASH),
+                    stringResource(R.string.trends_stat_days) to "${recovery.values.size}",
                 ),
             )
         }
@@ -185,9 +198,13 @@ fun TrendsScreen(vm: AppViewModel) {
                 modifier = Modifier.staggeredAppear(index = 4),
                 verticalArrangement = Arrangement.spacedBy(Metrics.gap),
             ) {
-                SectionHeader("Daily signals", overline = "Trends")
+                SectionHeader(
+                    stringResource(R.string.trends_daily_signals),
+                    overline = stringResource(R.string.trends_overline_trends),
+                )
                 MetricTrendCard(
-                    title = "Heart rate variability", unit = "ms",
+                    title = stringResource(R.string.trends_metric_hrv),
+                    unit = stringResource(R.string.trends_unit_ms),
                     color = Palette.metricPurple,
                     tint = Palette.chargeColor,
                     higherIsBetter = true,
@@ -195,7 +212,8 @@ fun TrendsScreen(vm: AppViewModel) {
                     fmt = { "${it.roundToInt()}" },
                 )
                 MetricTrendCard(
-                    title = "Resting heart rate", unit = "bpm",
+                    title = stringResource(R.string.trends_metric_rhr),
+                    unit = stringResource(R.string.trends_unit_bpm),
                     color = Palette.metricRose,
                     tint = Palette.chargeColor,
                     higherIsBetter = false,
@@ -205,7 +223,8 @@ fun TrendsScreen(vm: AppViewModel) {
                 MetricTrendCard(
                     // Plotted values stay on the stored 0–100 scale (line shape unchanged); only the displayed
                     // numbers + unit follow the Effort-scale toggle, converted inside `fmt`. (#268)
-                    title = "Effort", unit = "/ ${UnitFormatter.effortScaleMax(effortScale)}",
+                    title = stringResource(R.string.trends_metric_effort),
+                    unit = stringResource(R.string.trends_effort_unit, UnitFormatter.effortScaleMax(effortScale)),
                     // WHOOP: Effort/Strain is always BLUE — a deep→bright blue line, not the amber ramp.
                     color = Palette.effortColor,
                     tint = Palette.effortColor,
@@ -257,10 +276,13 @@ private fun WeekInReviewCard(
 
     NoopCard(modifier = modifier, tint = Palette.chargeColor) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeader("Week in review", overline = "Charge · Effort · Rest")
+            SectionHeader(
+                stringResource(R.string.digest_overline),
+                overline = stringResource(R.string.scoring_header_subtitle),
+            )
             if (chargeAvg != null) {
                 PipScoreRow(
-                    label = "Charge", value = chargeAvg, range = 0f..100f,
+                    label = stringResource(R.string.trends_charge), value = chargeAvg, range = 0f..100f,
                     tint = Palette.chargeColor, format = { "${it.roundToInt()}" },
                 )
             }
@@ -272,14 +294,14 @@ private fun WeekInReviewCard(
                 val maxV = UnitFormatter.effortValue(100.0, effortScale)
                 val oneDecimal = effortScale == EffortScale.WHOOP
                 PipScoreRow(
-                    label = "Effort", value = display, range = 0f..maxV.toFloat(),
+                    label = stringResource(R.string.trends_metric_effort), value = display, range = 0f..maxV.toFloat(),
                     tint = Palette.effortColor,
                     format = { if (oneDecimal) String.format(Locale.US, "%.1f", it) else "${it.roundToInt()}" },
                 )
             }
             if (restAvg != null) {
                 PipScoreRow(
-                    label = "Rest", value = restAvg, range = 0f..100f,
+                    label = stringResource(R.string.explore_category_rest), value = restAvg, range = 0f..100f,
                     tint = Palette.restColor, format = { "${it.roundToInt()}" },
                 )
             }
@@ -318,17 +340,16 @@ private fun PipScoreRow(
 
 // MARK: - Range control model (ported from TrendsView.Range)
 
-/** W(7) / M(30) / 3M(90) / 6M(180) / 1Y(365) / ALL. */
-private enum class TrendsRange(val days: Int?, val label: String, val longName: String) {
-    Week(7, "W", "week"),
-    Month(30, "M", "month"),
-    Quarter(90, "3M", "3 months"),
-    Half(180, "6M", "6 months"),
-    Year(365, "1Y", "year"),
-    All(null, "ALL", "all history");
-
-    /** "Trailing 90 days" / "All history" — the card/range subtitle. */
-    val subtitle: String get() = days?.let { "Trailing $it days" } ?: "All history"
+/** W(7) / M(30) / 3M(90) / 6M(180) / 1Y(365) / ALL. [label] is the canonical en-US pill code;
+ *  rememberRangeShortLabels localizes 1Y/ALL and passes the rest through. Long-name + subtitle
+ *  are resolved via the @Composable trendsRangeLongName / trendsRangeSubtitle helpers. */
+private enum class TrendsRange(val days: Int?, val label: String) {
+    Week(7, "W"),
+    Month(30, "M"),
+    Quarter(90, "3M"),
+    Half(180, "6M"),
+    Year(365, "1Y"),
+    All(null, "ALL");
 
     /** This range plus every LARGER range, ascending — the auto-expand search order. */
     val widening: List<TrendsRange>
@@ -344,7 +365,8 @@ private data class ResolvedMetric(
     val dates: List<String>,
     val effective: TrendsRange,
     val widened: Boolean,
-    val caption: String,
+    /** Non-null point count in the resolved window — the caption is built in @Composable scope. */
+    val count: Int,
 )
 
 /**
@@ -365,7 +387,7 @@ private fun resolveMetric(
                 dates = pts.map { it.first },
                 effective = r,
                 widened = r != selected,
-                caption = caption(pts.size, r, selected),
+                count = pts.size,
             )
         }
     }
@@ -375,7 +397,7 @@ private fun resolveMetric(
         dates = pts.map { it.first },
         effective = TrendsRange.All,
         widened = TrendsRange.All != selected,
-        caption = caption(pts.size, TrendsRange.All, selected),
+        count = pts.size,
     )
 }
 
@@ -405,15 +427,42 @@ private fun windowPoints(
     return sliced.mapNotNull { d -> value(d)?.let { d.day to it } }
 }
 
-/** Caption text, mirroring TrendsView.caption(count:eff:). */
-private fun caption(count: Int, eff: TrendsRange, selected: TrendsRange): String {
-    val unit = if (count == 1) "reading" else "readings"
-    return if (eff != selected) {
-        "$count $unit · sparse — widened to ${eff.longName}"
+/** Caption text, mirroring TrendsView.caption(count:eff:). Built in @Composable scope so the
+ *  reading-count unit, the widened/window phrasing and the range long-name all localize. */
+@Composable
+private fun trendsCaption(resolved: ResolvedMetric, selected: TrendsRange): String {
+    val count = resolved.count
+    val unit = if (count == 1) {
+        stringResource(R.string.trends_caption_reading_singular)
     } else {
-        "$count $unit · ${selected.longName}"
+        stringResource(R.string.trends_caption_reading_plural)
+    }
+    val longName = trendsRangeLongName(resolved.effective)
+    return if (resolved.widened) {
+        stringResource(R.string.trends_caption_sparse_widened, count, unit, longName)
+    } else {
+        stringResource(R.string.trends_caption_window, count, unit, longName)
     }
 }
+
+/** The range's long-name ("week" / "3 months" / "all history"), localized. */
+@Composable
+private fun trendsRangeLongName(range: TrendsRange): String = stringResource(
+    when (range) {
+        TrendsRange.Week -> R.string.trends_window_week
+        TrendsRange.Month -> R.string.trends_window_month
+        TrendsRange.Quarter -> R.string.trends_window_three_months
+        TrendsRange.Half -> R.string.trends_window_six_months
+        TrendsRange.Year -> R.string.trends_window_year
+        TrendsRange.All -> R.string.trends_window_all_history
+    },
+)
+
+/** The range's card subtitle ("Trailing 90 days" / "All history"), localized. */
+@Composable
+private fun trendsRangeSubtitle(range: TrendsRange): String =
+    range.days?.let { stringResource(R.string.trends_subtitle_trailing_days, it) }
+        ?: stringResource(R.string.trends_subtitle_all_history)
 
 // MARK: - ChartCard — the uniform fixed-height trend card
 //
@@ -608,9 +657,10 @@ private fun MetricTrendCard(
         footer = listOf(
             // Plain "Mean" to match the bare Min/Max columns; the unit moves into the value
             // (e.g. "58 ms") so uppercasing can't render a shouty "MEAN MS".
-            "Mean" to (avg?.let { "${fmt(it)} $unit" } ?: EM_DASH),
-            "Min" to (resolved.values.minOrNull()?.let { fmt(it) } ?: EM_DASH),
-            "Max" to (resolved.values.maxOrNull()?.let { fmt(it) } ?: EM_DASH),
+            stringResource(R.string.trends_stat_mean) to
+                (avg?.let { stringResource(R.string.trends_footer_mean_value, fmt(it), unit) } ?: EM_DASH),
+            stringResource(R.string.trends_stat_min) to (resolved.values.minOrNull()?.let { fmt(it) } ?: EM_DASH),
+            stringResource(R.string.trends_stat_max) to (resolved.values.maxOrNull()?.let { fmt(it) } ?: EM_DASH),
         ),
     )
 }
@@ -666,14 +716,18 @@ private fun RecoveryHistoryCard(days: List<DailyMetric>, range: TrendsRange) {
         days.takeLast(span).mapNotNull { it.recovery }
     }
     val title = if (range == TrendsRange.All && days.size > 365) {
-        "Charge — all history"
+        stringResource(R.string.trends_history_all)
     } else {
-        "Charge — past year"
+        stringResource(R.string.trends_history_year)
     }
 
     NoopCard(tint = Palette.chargeColor) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeader(title, overline = "Calendar", trailing = "${recovery.size} days")
+            SectionHeader(
+                title,
+                overline = stringResource(R.string.trends_overline_calendar),
+                trailing = stringResource(R.string.trends_days_count, recovery.size),
+            )
             if (recovery.size >= 2) {
                 BarChart(
                     values = recovery,
@@ -685,8 +739,7 @@ private fun RecoveryHistoryCard(days: List<DailyMetric>, range: TrendsRange) {
             }
             HorizontalDivider(color = Palette.hairline)
             Text(
-                "Each bar is one day's Charge score, low to high. The 53-week calendar " +
-                    "heat-grid is part of the desktop app.",
+                stringResource(R.string.trends_history_note),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
             )
@@ -736,7 +789,7 @@ private fun SparsePlaceholder(height: Dp = Metrics.chartHeight) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            "Not enough data for this window.",
+            stringResource(R.string.trends_sparse_placeholder),
             style = NoopType.subhead,
             color = Palette.textTertiary,
             textAlign = TextAlign.Center,
@@ -747,9 +800,8 @@ private fun SparsePlaceholder(height: Dp = Metrics.chartHeight) {
 @Composable
 private fun EmptyTrends() {
     DataPendingNote(
-        title = "Trends need history to draw",
-        body = "Trends need history to draw. Import your WHOOP export in Data Sources " +
-            "to see weeks, months and years instantly.",
+        title = stringResource(R.string.trends_empty_title),
+        body = stringResource(R.string.trends_empty_body),
     )
 }
 

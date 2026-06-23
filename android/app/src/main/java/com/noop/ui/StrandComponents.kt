@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import android.app.DatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,9 +52,9 @@ internal fun ThreeDaySelectorBar(
             val day = base.minusDays(offset.toLong())
             val selected = selectedOffset == offset
             val label = when (offset) {
-                0 -> "Today"
-                1 -> "Yesterday"
-                else -> "2 days ago"
+                0 -> stringResource(R.string.comp_day_today)
+                1 -> stringResource(R.string.comp_day_yesterday)
+                else -> stringResource(R.string.comp_day_two_days_ago)
             }
             val date = day.format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
             Column(
@@ -140,8 +143,8 @@ internal fun DayNavBar(
 
     val canGoNewer = selectedOffset > 0
     val label = when (selectedOffset) {
-        0 -> "Today"
-        1 -> "Yesterday"
+        0 -> stringResource(R.string.comp_day_today)
+        1 -> stringResource(R.string.comp_day_yesterday)
         else -> selectedDay.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.US))
     }
     val date = selectedDay.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.US))
@@ -153,7 +156,7 @@ internal fun DayNavBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = { onSelect(selectedOffset + 1) }) {
-            Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous day", tint = Palette.accent)
+            Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.strand_previous_day), tint = Palette.accent)
         }
         Column(
             modifier = Modifier
@@ -163,7 +166,7 @@ internal fun DayNavBar(
                 // dark-yellow block); the gold pop lives only on the date text itself.
                 .background(Palette.surfaceInset)
                 .border(Metrics.divider, Palette.hairline, blockShape)
-                .clickable(onClickLabel = "Pick a date") { showPicker = true }
+                .clickable(onClickLabel = stringResource(R.string.comp_pick_a_date)) { showPicker = true }
                 .padding(vertical = Metrics.selectorPadding, horizontal = Metrics.selectorPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -179,7 +182,7 @@ internal fun DayNavBar(
             )
         }
         IconButton(onClick = { if (canGoNewer) onSelect(selectedOffset - 1) }, enabled = canGoNewer) {
-            Icon(Icons.Filled.ChevronRight, contentDescription = "Next day", tint = if (canGoNewer) Palette.accent else Palette.textTertiary)
+            Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.strand_next_day), tint = if (canGoNewer) Palette.accent else Palette.textTertiary)
         }
     }
 }

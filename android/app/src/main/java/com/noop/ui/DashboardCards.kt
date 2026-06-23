@@ -1,6 +1,7 @@
 package com.noop.ui
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.noop.R
 import org.json.JSONArray
 
 // MARK: - "Your cards" customisable dashboard (WHOOP "My Dashboard") — Kotlin twin of DashboardCards.swift
@@ -34,6 +36,11 @@ import org.json.JSONArray
  * BYTE-IDENTICAL to the iOS `DashboardCard` rawValue so a backup/restore reads the same dashboard on either
  * OS. [title] / [subtitle] / [unit] mirror the Swift registry verbatim; [icon] is the Material twin of the
  * SF Symbol (closest match in the bundled icon set).
+ *
+ * i18n: [title] / [subtitle] stay the canonical en-US values (logic / parity / safe fallback) — this enum is
+ * not @Composable and can't call stringResource. The render site (DashboardCardRow in TodayScreen.kt)
+ * resolves the localized label via [titleRes] / [subtitleRes], e.g. `stringResource(card.titleRes)`.
+ * [unit] is a measurement symbol (ms, bpm, rpm, yrs, kcal) — not translated.
  */
 enum class DashboardCard(
     val raw: String,
@@ -41,19 +48,33 @@ enum class DashboardCard(
     val subtitle: String,
     val unit: String,
     val icon: ImageVector,
+    @StringRes val titleRes: Int,
+    @StringRes val subtitleRes: Int,
 ) {
-    HRV("hrv", "HRV", "Heart-rate variability", "ms", Icons.Filled.MonitorHeart),
-    RESTING_HR("restingHr", "Resting HR", "Resting heart rate", "bpm", Icons.Filled.Favorite),
-    RESPIRATORY("respiratory", "Respiratory", "Breaths per minute", "rpm", Icons.Filled.Air),
-    STEPS("steps", "Steps", "Today", "", Icons.Filled.DirectionsWalk),
-    STRESS("stress", "Stress", "Autonomic load", "", Icons.Filled.Bolt),
-    FITNESS_AGE("fitnessAge", "Fitness Age", "Updated weekly", "yrs", Icons.Filled.DirectionsRun),
-    VITALITY("vitality", "Vitality", "Wellness score", "", Icons.Filled.AutoAwesome),
-    BLOOD_OXYGEN("bloodOxygen", "Blood Oxygen", "Blood oxygen", "", Icons.Filled.WaterDrop),
-    SKIN_TEMP("skinTemp", "Skin Temp", "Skin temperature", "", Icons.Filled.Thermostat),
-    SLEEP("sleep", "Sleep", "Last night", "", Icons.Filled.Bedtime),
-    CALORIES("calories", "Calories", "Active energy", "kcal", Icons.Filled.LocalFireDepartment),
-    HYDRATION("hydration", "Hydration", "Today's fluid", "", Icons.Filled.WaterDrop);
+    HRV("hrv", "HRV", "Heart-rate variability", "ms", Icons.Filled.MonitorHeart,
+        R.string.today_card_hrv_title, R.string.today_card_hrv_subtitle),
+    RESTING_HR("restingHr", "Resting HR", "Resting heart rate", "bpm", Icons.Filled.Favorite,
+        R.string.today_card_resting_hr_title, R.string.today_card_resting_hr_subtitle),
+    RESPIRATORY("respiratory", "Respiratory", "Breaths per minute", "rpm", Icons.Filled.Air,
+        R.string.today_card_respiratory_title, R.string.today_card_respiratory_subtitle),
+    STEPS("steps", "Steps", "Today", "", Icons.Filled.DirectionsWalk,
+        R.string.today_card_steps_title, R.string.today_card_steps_subtitle),
+    STRESS("stress", "Stress", "Autonomic load", "", Icons.Filled.Bolt,
+        R.string.today_card_stress_title, R.string.today_card_stress_subtitle),
+    FITNESS_AGE("fitnessAge", "Fitness Age", "Updated weekly", "yrs", Icons.Filled.DirectionsRun,
+        R.string.today_card_fitness_age_title, R.string.today_card_fitness_age_subtitle),
+    VITALITY("vitality", "Vitality", "Wellness score", "", Icons.Filled.AutoAwesome,
+        R.string.today_card_vitality_title, R.string.today_card_vitality_subtitle),
+    BLOOD_OXYGEN("bloodOxygen", "Blood Oxygen", "Blood oxygen", "", Icons.Filled.WaterDrop,
+        R.string.today_card_blood_oxygen_title, R.string.today_card_blood_oxygen_subtitle),
+    SKIN_TEMP("skinTemp", "Skin Temp", "Skin temperature", "", Icons.Filled.Thermostat,
+        R.string.today_card_skin_temp_title, R.string.today_card_skin_temp_subtitle),
+    SLEEP("sleep", "Sleep", "Last night", "", Icons.Filled.Bedtime,
+        R.string.today_card_sleep_title, R.string.today_card_sleep_subtitle),
+    CALORIES("calories", "Calories", "Active energy", "kcal", Icons.Filled.LocalFireDepartment,
+        R.string.today_card_calories_title, R.string.today_card_calories_subtitle),
+    HYDRATION("hydration", "Hydration", "Today's fluid", "", Icons.Filled.WaterDrop,
+        R.string.today_card_hydration_title, R.string.today_card_hydration_subtitle);
 
     companion object {
         fun fromRaw(raw: String?): DashboardCard? = entries.firstOrNull { it.raw == raw }

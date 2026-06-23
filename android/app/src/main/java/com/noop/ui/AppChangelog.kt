@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.noop.R
 
 // MARK: - AppChangelog (ported byte-for-byte from Strand/System/AppChangelog.swift)
 //
@@ -2124,6 +2125,11 @@ object AppChangelog {
         val icon: ImageVector,
         val title: String,
         val body: String,
+        // i18n: title/body are the canonical English fallbacks (non-@Composable data + parity); the
+        // render sites resolve the localized copy via these keys — WhatsNewSheet.ExpectationsCard and
+        // OnboardingScreen.ExpectationCard. 0 = no key, show the English value.
+        @androidx.annotation.StringRes val titleRes: Int = 0,
+        @androidx.annotation.StringRes val bodyRes: Int = 0,
     )
 
     val expectations: List<Expectation> = listOf(
@@ -2131,21 +2137,29 @@ object AppChangelog {
             icon = Icons.Outlined.Science,
             title = "Independent, and experimental",
             body = "NOOP is a personal, open project — not the WHOOP app, and not affiliated with WHOOP. It reads a strap you own, on your own device. Treat it as a capable work-in-progress rather than a finished product.",
+            titleRes = R.string.expectation_independent_title,
+            bodyRes = R.string.expectation_independent_body,
         ),
         Expectation(
             icon = Icons.Outlined.VerifiedUser,
             title = "WHOOP 4.0 is the supported path",
             body = "WHOOP 4.0 is tested and works end to end. WHOOP 5.0/MG is newer: live heart rate works today, but deeper metrics (recovery, strain, sleep) for 5/MG are still being figured out. NOOP always tells you what's live versus still building.",
+            titleRes = R.string.expectation_supported_title,
+            bodyRes = R.string.expectation_supported_body,
         ),
         Expectation(
             icon = Icons.Outlined.HourglassEmpty,
             title = "Your scores build over a few nights",
             body = "Live heart rate is instant. Recovery, strain and sleep sharpen as NOOP learns your baseline over your first nights of wear. Want your history now? Import your WHOOP export in Data Sources and it backfills in about a minute.",
+            titleRes = R.string.expectation_scores_title,
+            bodyRes = R.string.expectation_scores_body,
         ),
         Expectation(
             icon = Icons.Outlined.Shield,
             title = "Everything stays on your device",
             body = "No account, no cloud, no sync. NOOP talks only to your strap and keeps everything local. Your data is yours alone.",
+            titleRes = R.string.expectation_ondevice_title,
+            bodyRes = R.string.expectation_ondevice_body,
         ),
     )
 }

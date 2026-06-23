@@ -39,9 +39,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noop.R
 import com.noop.data.DailyMetric
 import com.noop.data.MoodStore
 import com.noop.ingest.NutritionCsvImporter
@@ -71,13 +73,13 @@ import kotlin.math.roundToInt
 
 // MARK: - Window range (W / M / 3M / 6M / 1Y / ALL)
 
-private enum class ExploreRange(val days: Int?, val label: String, val windowName: String) {
-    Week(7, "W", "week"),
-    Month(30, "M", "month"),
-    Quarter(90, "3M", "quarter"),
-    Half(180, "6M", "6 months"),
-    Year(365, "1Y", "year"),
-    All(null, "ALL", "all time");
+private enum class ExploreRange(val days: Int?, val label: String) {
+    Week(7, "W"),
+    Month(30, "M"),
+    Quarter(90, "3M"),
+    Half(180, "6M"),
+    Year(365, "1Y"),
+    All(null, "ALL");
 
     /** This range plus every larger range, ascending — the auto-widen search order. */
     val widening: List<ExploreRange>
@@ -325,7 +327,10 @@ fun TrendsExploreScreen(vm: AppViewModel) {
     // are accessibility-walked on scroll. Each top-level child is one `item { }` in the same order; the
     // conditional empty-state note uses `if (cond) { item {} }` so it adds no row when hidden. No standalone
     // Spacers here — the LazyColumn's `spacedBy(20.dp)` reproduces the eager column's row spacing exactly.
-    LazyScreenScaffold(title = "Explore", subtitle = "Every signal, one tap deep.") {
+    LazyScreenScaffold(
+        title = stringResource(R.string.explore_screen_title),
+        subtitle = stringResource(R.string.explore_screen_subtitle),
+    ) {
 
         // The headline tap-through (#575): a full-day, full-resolution, zoomable timeline. Sits above the
         // per-metric catalog because it's a different kind of view — every second of one day, not one
@@ -337,9 +342,8 @@ fun TrendsExploreScreen(vm: AppViewModel) {
         if (series.isEmpty()) {
             item {
             DataPendingNote(
-                title = "Import your history first",
-                body = "Import your history first. A WHOOP export in Data Sources fills " +
-                    "every metric you can explore here in about a minute.",
+                title = stringResource(R.string.explore_import_history_title),
+                body = stringResource(R.string.explore_import_history_body),
             )
             }
         }
@@ -354,15 +358,19 @@ fun TrendsExploreScreen(vm: AppViewModel) {
         }
 
         // RANGE BAR — overline + title + the one segmented window control, with a caption
-        // that flags a sparse auto-widen.
+        // that flags a sparse auto-widen. Strings hoisted above the (non-@Composable) label lambda.
         item {
+        val selectedCategory = metricCategory(selected.category)
+        val selectedTitle = metricTitle(selected)
+        val selectedBlurb = metricDescription(selected)
+        val rangeLabels = rememberRangeShortLabels(ExploreRange.entries.toList()) { it.label }
         Row(verticalAlignment = Alignment.Top) {
             Column(modifier = Modifier.weight(1f)) {
-                Overline(selected.category)
-                Text(selected.title, style = NoopType.title2, color = Palette.textPrimary)
+                Overline(selectedCategory)
+                Text(selectedTitle, style = NoopType.title2, color = Palette.textPrimary)
                 // The plain-English one-liner for the three headline scores (Charge/Effort/Rest);
                 // null for every other metric, so only the scores show a subtitle here.
-                selected.description?.let { blurb ->
+                selectedBlurb?.let { blurb ->
                     Text(
                         blurb,
                         style = NoopType.footnote,
@@ -374,7 +382,7 @@ fun TrendsExploreScreen(vm: AppViewModel) {
             SegmentedPillControl(
                 items = ExploreRange.entries.toList(),
                 selection = range,
-                label = { it.label },
+                label = { rangeLabels.getValue(it) },
                 onSelect = { range = it },
             )
         }
@@ -431,9 +439,13 @@ private fun DeepTimelineEntry(onClick: () -> Unit) {
                 Text("∿", style = NoopType.title2, color = Palette.metricRose)
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text("Deep Timeline", style = NoopType.headline, color = Palette.textPrimary)
                 Text(
-                    "Every second of your day, zoomable.",
+                    stringResource(R.string.trends_explore_deep_timeline),
+                    style = NoopType.headline,
+                    color = Palette.textPrimary,
+                )
+                Text(
+                    stringResource(R.string.trends_explore_every_second_of_your_day_zoomable),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
@@ -477,12 +489,12 @@ private fun MetricDropdown(
         ) {
             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(selected.accent))
             Column(modifier = Modifier.weight(1f)) {
-                Overline(selected.category, color = Palette.textTertiary)
-                Text(selected.title, style = NoopType.headline, color = Palette.textPrimary)
+                Overline(metricCategory(selected.category), color = Palette.textTertiary)
+                Text(metricTitle(selected), style = NoopType.headline, color = Palette.textPrimary)
             }
             Icon(
                 if (expanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
-                contentDescription = "Pick metric",
+                contentDescription = stringResource(R.string.explore_pick_metric_cd),
                 tint = if (expanded) Palette.accent else Palette.textSecondary,
             )
         }
@@ -510,7 +522,7 @@ private fun MetricDropdown(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Palette.accent))
-                    Overline(category, color = Palette.accent)
+                    Overline(metricCategory(category), color = Palette.accent)
                 }
                 items.forEach { metric ->
                     val isSelected = metric.key == selected.key
@@ -523,7 +535,7 @@ private fun MetricDropdown(
                             ) {
                                 Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(metric.accent))
                                 Text(
-                                    metric.title,
+                                    metricTitle(metric),
                                     style = NoopType.body,
                                     color = if (isSelected) Palette.accent else Palette.textPrimary,
                                     modifier = Modifier.weight(1f),
@@ -561,20 +573,22 @@ private fun HeroChartCard(
     fellBack: Boolean,
 ) {
     val heroValue = latest?.let { metric.format(it.value) } ?: "—"
-    val asOf = latest?.let { "as of ${it.day}" } ?: "no readings yet"
+    val asOf = latest?.let { stringResource(R.string.explore_as_of, it.day) }
+        ?: stringResource(R.string.explore_no_readings_yet)
+    val title = metricTitle(metric)
     // The range bar above already prints the authoritative reading-count caption; the hero only
     // names its window so the count isn't doubled in one card height.
     val subtitle = if (fellBack) {
-        "Trailing ${effectiveRange.windowName}"
+        stringResource(R.string.explore_trailing_window, exploreWindowName(effectiveRange))
     } else {
-        "Trailing ${range.windowName}"
+        stringResource(R.string.explore_trailing_window, exploreWindowName(range))
     }
     // Wash the hero card in the metric's domain world (Charge green / Effort amber / Rest indigo).
     NoopCard(tint = domainTint(metric.category)) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Overline(metric.title)
+                    Overline(title)
                     Text(subtitle, style = NoopType.footnote, color = Palette.textTertiary)
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -645,9 +659,9 @@ private fun HeroChartCard(
                 ) {
                     Text(
                         if (windowed.isEmpty()) {
-                            "No ${metric.title.lowercase()} recorded yet. Sync your strap to populate this trend."
+                            stringResource(R.string.explore_no_metric_recorded, title)
                         } else {
-                            "Only one reading in range — widen the window to see a trend."
+                            stringResource(R.string.explore_single_reading_widen)
                         },
                         style = NoopType.subhead,
                         color = Palette.textTertiary,
@@ -657,9 +671,9 @@ private fun HeroChartCard(
 
             // Footer chips, mirroring the macOS ChartFooter (Window / Points / Latest).
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
-                ChartFootItem("Window", effectiveRange.label)
-                ChartFootItem("Points", "${windowed.size}")
-                ChartFootItem("Latest", heroValue)
+                ChartFootItem(stringResource(R.string.explore_foot_window), effectiveRange.label)
+                ChartFootItem(stringResource(R.string.explore_foot_points), "${windowed.size}")
+                ChartFootItem(stringResource(R.string.explore_latest), heroValue)
             }
         }
     }
@@ -734,31 +748,35 @@ private fun StatRow(
         else if ((delta > 0) == better) Palette.statusPositive else Palette.statusCritical
     }
     val deltaCaption = when {
-        hasDelta -> "vs prev ${effectiveRange.windowName}"
-        effectiveRange == ExploreRange.All -> "all history"
-        else -> "no prior ${effectiveRange.windowName}"
+        hasDelta -> stringResource(R.string.explore_delta_vs_prev, exploreWindowName(effectiveRange))
+        effectiveRange == ExploreRange.All -> stringResource(R.string.explore_delta_all_history)
+        else -> stringResource(R.string.explore_delta_no_prior, exploreWindowName(effectiveRange))
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Summary", overline = "Over the visible window", trailing = "${s.n} pts")
+        SectionHeader(
+            stringResource(R.string.explore_summary_title),
+            overline = stringResource(R.string.explore_summary_overline),
+            trailing = stringResource(R.string.explore_summary_points, s.n),
+        )
 
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             StatTile(
                 modifier = Modifier.weight(1f),
-                label = "Average",
+                label = stringResource(R.string.explore_stat_average),
                 value = if (s.n > 0) metric.format(s.mean) else "—",
-                caption = "${s.n} days",
+                caption = stringResource(R.string.explore_stat_average_days, s.n),
                 accent = metric.accent,
             )
             StatTile(
                 modifier = Modifier.weight(1f),
-                label = "Min",
+                label = stringResource(R.string.explore_stat_min),
                 value = if (s.n > 0) metric.format(s.min) else "—",
                 accent = Palette.textPrimary,
             )
             StatTile(
                 modifier = Modifier.weight(1f),
-                label = "Max",
+                label = stringResource(R.string.explore_stat_max),
                 value = if (s.n > 0) metric.format(s.max) else "—",
                 accent = Palette.textPrimary,
             )
@@ -770,14 +788,14 @@ private fun StatRow(
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             StatTile(
                 modifier = Modifier.weight(1f),
-                label = "Latest",
+                label = stringResource(R.string.explore_latest),
                 value = latest?.let { metric.format(it.value) } ?: "—",
                 caption = latest?.day,
                 accent = metric.accent,
             )
             StatTile(
                 modifier = Modifier.weight(1f),
-                label = "Δ vs prev",
+                label = stringResource(R.string.explore_stat_delta),
                 value = deltaText,
                 caption = deltaCaption,
                 accent = Palette.textPrimary,
@@ -787,6 +805,76 @@ private fun StatRow(
         }
     }
 }
+
+// MARK: - Localized display resolvers (canonical en-US stays on MetricSpec; display localizes here)
+
+/**
+ * The metric's localized display title, keyed off its canonical [MetricSpec.key] (a logic key, not a
+ * label). Unknown keys (the dynamic "Other" series) fall back to the spec's prettified English title.
+ * Mirrors the existing metricTitle/titleRes resolver idiom — MetricSpec stays English-canonical.
+ */
+@Composable
+private fun metricTitle(spec: MetricSpec): String = when (spec.key) {
+    "recovery" -> stringResource(R.string.explore_metric_charge)
+    "strain" -> stringResource(R.string.trends_metric_effort)
+    "hrv" -> stringResource(R.string.explore_metric_hrv)
+    "rhr" -> stringResource(R.string.explore_metric_resting_hr)
+    "sleep" -> stringResource(R.string.explore_metric_sleep)
+    "efficiency" -> stringResource(R.string.explore_metric_sleep_efficiency)
+    "spo2" -> stringResource(R.string.explore_metric_blood_oxygen)
+    "resp" -> stringResource(R.string.explore_metric_respiratory_rate)
+    "avg_hr" -> stringResource(R.string.explore_metric_avg_hr)
+    "max_hr" -> stringResource(R.string.explore_metric_max_hr)
+    "calories_in" -> stringResource(R.string.explore_metric_calories_in)
+    "protein_g" -> stringResource(R.string.explore_metric_protein)
+    "carbs_g" -> stringResource(R.string.explore_metric_carbs)
+    "fat_g" -> stringResource(R.string.explore_metric_fat)
+    "mood" -> stringResource(R.string.explore_metric_mood)
+    else -> spec.title // dynamic "Other" key — prettified, no canonical translation
+}
+
+/**
+ * The metric's localized one-liner blurb, or null when it has none. Only the three headline scores
+ * (Charge / Effort / Rest=sleep) carry one — keyed off [MetricSpec.key], so the canonical English
+ * [MetricSpec.description] is only used to decide PRESENCE (null vs not), never shown directly.
+ */
+@Composable
+private fun metricDescription(spec: MetricSpec): String? {
+    if (spec.description == null) return null
+    return when (spec.key) {
+        "recovery" -> stringResource(R.string.explore_desc_charge)
+        "strain" -> stringResource(R.string.explore_desc_effort)
+        "sleep" -> stringResource(R.string.explore_desc_rest)
+        else -> spec.description
+    }
+}
+
+/** A category groupBy-key's localized display label; the raw category string stays the canonical key. */
+@Composable
+private fun metricCategory(category: String): String = when (category) {
+    "Charge" -> stringResource(R.string.explore_category_charge)
+    "Effort" -> stringResource(R.string.explore_category_effort)
+    "Rest" -> stringResource(R.string.explore_category_rest)
+    "Health" -> stringResource(R.string.explore_category_health)
+    "Heart" -> stringResource(R.string.explore_category_heart)
+    "Nutrition" -> stringResource(R.string.explore_category_nutrition)
+    "Mind" -> stringResource(R.string.explore_category_mind)
+    "Other" -> stringResource(R.string.explore_category_other)
+    else -> category
+}
+
+/** The window's localized long-name ("week" / "quarter" / "all time"). */
+@Composable
+private fun exploreWindowName(range: ExploreRange): String = stringResource(
+    when (range) {
+        ExploreRange.Week -> R.string.explore_window_week
+        ExploreRange.Month -> R.string.explore_window_month
+        ExploreRange.Quarter -> R.string.explore_window_quarter
+        ExploreRange.Half -> R.string.explore_window_six_months
+        ExploreRange.Year -> R.string.explore_window_year
+        ExploreRange.All -> R.string.explore_window_all_time
+    },
+)
 
 // MARK: - Window / formatting helpers
 
@@ -809,6 +897,7 @@ private fun signed(metric: MetricSpec, delta: Double): String {
     return sign + metric.format(abs(delta))
 }
 
+@Composable
 private fun rangeCaption(
     series: List<SeriesPoint>,
     windowed: List<SeriesPoint>,
@@ -818,7 +907,14 @@ private fun rangeCaption(
 ): String {
     if (series.isEmpty()) return "—"
     val n = windowed.size
-    val unit = if (n == 1) "reading" else "readings"
-    return if (fellBack) "$n $unit · sparse — widened to ${effectiveRange.windowName}"
-    else "$n $unit · ${range.windowName}"
+    val unit = if (n == 1) {
+        stringResource(R.string.explore_caption_reading_singular)
+    } else {
+        stringResource(R.string.explore_caption_reading_plural)
+    }
+    return if (fellBack) {
+        stringResource(R.string.explore_caption_sparse_widened, n, unit, exploreWindowName(effectiveRange))
+    } else {
+        stringResource(R.string.explore_caption_window, n, unit, exploreWindowName(range))
+    }
 }

@@ -42,8 +42,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import com.noop.R
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -186,39 +188,25 @@ fun ScoringGuideScreen(
                 IntroCard()
                 ScoreCard(
                     section = ScoreSection.CHARGE,
-                    headline = "Charge — how recovered are you?",
-                    body = "Led by your heart-rate variability (HRV) measured against your own " +
-                        "personal baseline, plus resting heart rate, last night's Rest, breathing " +
-                        "rate, and a skin-temperature signal (an early illness or overreach flag). " +
-                        "Higher HRV versus your baseline means more Charge. NOOP needs a few nights " +
-                        "to learn your baseline first — until then you'll see “Calibrating”.",
-                    vsWhoop = "Same core idea as WHOOP's Recovery % (HRV-led recovery), but our " +
-                        "weighting and baseline maths are our own, and openly documented.",
+                    headline = stringResource(R.string.scoring_charge_headline),
+                    body = stringResource(R.string.scoring_charge_body),
+                    vsWhoop = stringResource(R.string.scoring_charge_vs_whoop),
                     highlighted = highlighted == ScoreSection.CHARGE,
                     onPositioned = { if (ScoreSection.CHARGE !in anchors) anchors[ScoreSection.CHARGE] = it },
                 )
                 ScoreCard(
                     section = ScoreSection.EFFORT,
-                    headline = "Effort — how hard did your heart work?",
-                    body = "Your cardiovascular load. NOOP turns every second of heart rate into a " +
-                        "training-impulse using heart-rate-reserve zones (Karvonen), weights time in " +
-                        "harder zones more heavily (Edwards / Banister), and places it on a " +
-                        "logarithmic 0–100 scale — so easy days sit low and an all-out day approaches " +
-                        "100, which stays genuinely rare. A long walk with little cardio still counts, " +
-                        "through a steps / active-energy floor.",
-                    vsWhoop = "Same cardiovascular-load idea as WHOOP's Day Strain (0–21). We " +
-                        "rescaled the top of the ladder from 21 to 100 so all three scores share one " +
-                        "scale — the rungs didn't move, so a 100 is as rare as a 21.0 was.",
+                    headline = stringResource(R.string.scoring_effort_headline),
+                    body = stringResource(R.string.scoring_effort_body),
+                    vsWhoop = stringResource(R.string.scoring_effort_vs_whoop),
                     highlighted = highlighted == ScoreSection.EFFORT,
                     onPositioned = { if (ScoreSection.EFFORT !in anchors) anchors[ScoreSection.EFFORT] = it },
                 )
                 ScoreCard(
                     section = ScoreSection.REST,
-                    headline = "Rest — how restorative was your sleep?",
-                    body = "A blend of how long you slept versus your personal need (the biggest " +
-                        "factor), how efficiently (asleep versus in bed), how much was restorative " +
-                        "(deep + REM sleep), and how consistent your sleep and wake timing is.",
-                    vsWhoop = "Similar in spirit to WHOOP's Sleep Performance %; our composite is our own.",
+                    headline = stringResource(R.string.scoring_rest_headline),
+                    body = stringResource(R.string.scoring_rest_body),
+                    vsWhoop = stringResource(R.string.scoring_rest_vs_whoop),
                     highlighted = highlighted == ScoreSection.REST,
                     onPositioned = { if (ScoreSection.REST !in anchors) anchors[ScoreSection.REST] = it },
                 )
@@ -247,10 +235,14 @@ private fun Header(onClose: () -> Unit) {
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Overline("Your daily scores", color = Palette.textTertiary)
-            Text("How your scores work", style = NoopType.display(26f), color = Palette.textPrimary)
+            Overline(stringResource(R.string.scoring_header_overline), color = Palette.textTertiary)
             Text(
-                "Charge · Effort · Rest",
+                stringResource(R.string.scoring_header_title),
+                style = NoopType.display(26f),
+                color = Palette.textPrimary,
+            )
+            Text(
+                stringResource(R.string.scoring_header_subtitle),
                 style = NoopType.caption,
                 color = Palette.textSecondary,
             )
@@ -258,7 +250,7 @@ private fun Header(onClose: () -> Unit) {
         IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
             Icon(
                 Icons.Filled.Close,
-                contentDescription = "Close",
+                contentDescription = stringResource(R.string.scoring_close),
                 tint = Palette.textTertiary,
                 modifier = Modifier.size(22.dp),
             )
@@ -272,15 +264,9 @@ private fun Header(onClose: () -> Unit) {
 private fun IntroCard() {
     NoopCard(padding = 20.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Overline("The three scores")
+            Overline(stringResource(R.string.scoring_intro_overline))
             Text(
-                "NOOP gives you three daily scores — Charge, Effort and Rest — each on a 0–100 " +
-                    "scale. They're built from your strap's raw signals using published, " +
-                    "peer-reviewed sport science, and computed entirely on your device. They are " +
-                    "NOT WHOOP's scores: we don't have WHOOP's private algorithms and don't pretend " +
-                    "to. They aim at the same three questions using open science, so they'll usually " +
-                    "track WHOOP's in direction, but won't match number-for-number — and that's the " +
-                    "point.",
+                stringResource(R.string.scoring_intro_body),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -292,6 +278,20 @@ private fun IntroCard() {
         }
     }
 }
+
+/**
+ * The localised display label for a score section. The enum's [ScoreSection.label] stays the stable
+ * English identity (Charge/Effort/Rest) shared verbatim across platforms; this resolves the
+ * user-facing translation for the current locale.
+ */
+@Composable
+private fun ScoreSection.localizedLabel(): String = stringResource(
+    when (this) {
+        ScoreSection.CHARGE -> R.string.scoring_section_charge
+        ScoreSection.EFFORT -> R.string.scoring_section_effort
+        ScoreSection.REST -> R.string.scoring_section_rest
+    },
+)
 
 @Composable
 private fun LegendDot(section: ScoreSection) {
@@ -305,7 +305,7 @@ private fun LegendDot(section: ScoreSection) {
                 .clip(CircleShape)
                 .background(section.accent),
         )
-        Text(section.label, style = NoopType.caption, color = Palette.textSecondary)
+        Text(section.localizedLabel(), style = NoopType.caption, color = Palette.textSecondary)
     }
 }
 
@@ -359,7 +359,7 @@ private fun ScoreCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            section.label.uppercase(),
+                            section.localizedLabel().uppercase(),
                             style = NoopType.overline,
                             color = section.accent,
                         )
@@ -374,7 +374,7 @@ private fun ScoreCard(
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    "VS WHOOP",
+                    stringResource(R.string.scoring_vs_whoop_label),
                     style = NoopType.overline,
                     color = section.accent,
                     modifier = Modifier.padding(top = 1.dp),
@@ -409,7 +409,7 @@ private fun SampleRing(section: ScoreSection) {
             lineWidth = 8.dp,
         )
         Text(
-            section.label.uppercase(),
+            section.localizedLabel().uppercase(),
             style = NoopType.overline,
             color = Palette.textTertiary,
         )
@@ -423,20 +423,29 @@ private fun ConfidenceCard() {
     NoopCard(padding = 20.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                "How sure is NOOP?  ·  Solid · Building · Calibrating",
+                stringResource(R.string.scoring_confidence_headline),
                 style = NoopType.headline,
                 color = Palette.textPrimary,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatePill("Solid", tone = StrandTone.Positive, showsDot = true)
-                StatePill("Building", tone = StrandTone.Warning, showsDot = true)
-                StatePill("Calibrating", tone = StrandTone.Neutral, showsDot = true)
+                StatePill(
+                    stringResource(R.string.scoring_confidence_solid),
+                    tone = StrandTone.Positive,
+                    showsDot = true,
+                )
+                StatePill(
+                    stringResource(R.string.scoring_confidence_building),
+                    tone = StrandTone.Warning,
+                    showsDot = true,
+                )
+                StatePill(
+                    stringResource(R.string.scoring_confidence_calibrating),
+                    tone = StrandTone.Neutral,
+                    showsDot = true,
+                )
             }
             Text(
-                "Every score carries a small honesty label. Calibrating means NOOP is still " +
-                    "learning your baseline, or doesn't have enough data yet. Building means there's " +
-                    "enough to show, but it's thin. Solid means full inputs are present. When NOOP " +
-                    "can't compute a score honestly, it shows nothing rather than a fake number.",
+                stringResource(R.string.scoring_confidence_body),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -449,8 +458,7 @@ private fun ConfidenceCard() {
 @Composable
 private fun FooterNote() {
     Text(
-        "These are independent approximations from a consumer strap, built on open science — not " +
-            "medical advice, and not WHOOP's official scores.",
+        stringResource(R.string.scoring_footer_note),
         style = NoopType.footnote,
         color = Palette.textTertiary,
         modifier = Modifier
@@ -474,7 +482,7 @@ private fun Footer(onClose: () -> Unit) {
                 contentColor = Palette.surfaceBase,
             ),
         ) {
-            Text("Got it", style = NoopType.captionNumber)
+            Text(stringResource(R.string.scoring_got_it), style = NoopType.captionNumber)
         }
     }
 }

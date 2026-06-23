@@ -28,7 +28,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.noop.R
 
 // Donation nudge (Today screen) — mirror of macOS/iOS `DonationNudgeCard`.
 //
@@ -96,15 +98,18 @@ fun DonationNudgeCard() {
                     tint = Palette.accent, modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.size(8.dp))
-                Text("Enjoying NOOP?", style = NoopType.headline, color = Palette.textPrimary)
+                Text(stringResource(R.string.donation_title), style = NoopType.headline, color = Palette.textPrimary)
             }
             Text(
-                "A WHOOP membership runs $300–480 a year, for life. NOOP does this for free — " +
-                    "one person, no servers, no subscription.",
+                stringResource(R.string.donation_body),
                 style = NoopType.footnote, color = Palette.textSecondary,
             )
             Text(
-                "${"%,d".format(DonationStats.DOWNLOADS)}+ downloads so far — ${DonationStats.DONORS} donors.",
+                stringResource(
+                    R.string.donation_stats,
+                    "%,d".format(DonationStats.DOWNLOADS),
+                    DonationStats.DONORS,
+                ),
                 style = NoopType.footnote, color = Palette.textPrimary,
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
@@ -112,8 +117,7 @@ fun DonationNudgeCard() {
                     .padding(horizontal = 10.dp, vertical = 6.dp),
             )
             Text(
-                "If it's saving you a subscription, a suggested \$50+ — a fraction of a year of WHOOP — " +
-                    "genuinely keeps the project alive. Anything is appreciated. Crypto only; the project stays anonymous.",
+                stringResource(R.string.donation_pitch),
                 style = NoopType.footnote, color = Palette.textSecondary,
             )
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -126,17 +130,17 @@ fun DonationNudgeCard() {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Palette.accent, contentColor = Palette.surfaceBase,
                     ),
-                ) { Text("Donate") }
+                ) { Text(stringResource(R.string.donation_cta_donate)) }
                 Spacer(Modifier.size(10.dp))
                 TextButton(onClick = {
                     DonationNudgePrefs.stamp(context)
                     visible = false
-                }) { Text("Later", color = Palette.textSecondary) }
+                }) { Text(stringResource(R.string.donation_cta_later), color = Palette.textSecondary) }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = {
                     DonationNudgePrefs.optOut(context)
                     visible = false
-                }) { Text("Don't ask again", color = Palette.textTertiary, style = NoopType.footnote) }
+                }) { Text(stringResource(R.string.donation_cta_dismiss), color = Palette.textTertiary, style = NoopType.footnote) }
             }
         }
     }

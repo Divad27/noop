@@ -26,9 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noop.R
 import com.noop.analytics.RecoveryForecast
 import com.noop.analytics.RecoveryForecaster
 import com.noop.data.DailyMetric
@@ -100,8 +102,8 @@ fun IntelligenceScreen(vm: AppViewModel) {
     }
 
     LazyScreenScaffold(
-        title = "Intelligence",
-        subtitle = "Charge, effort and rest — scored with the model, explained in plain terms.",
+        title = stringResource(R.string.intelligence_title),
+        subtitle = stringResource(R.string.intelligence_subtitle),
     ) {
         item { forecast?.let { ForecastCard(it) } }
         item { ExplainerCard(effortScale) }
@@ -123,20 +125,37 @@ fun IntelligenceScreen(vm: AppViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(Metrics.gap),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Overline("Recent")
-                        Text("By Day", style = NoopType.title2, color = Palette.textPrimary)
+                        Overline(stringResource(R.string.intelligence_recent))
+                        Text(
+                            stringResource(R.string.intelligence_by_day),
+                            style = NoopType.title2,
+                            color = Palette.textPrimary,
+                        )
                     }
+                    // Range labels are localized at the render site: the enum keeps canonical en-US
+                    // codes ("W"/"M"/"3M"/"6M"/"1Y"/"ALL"), and the shared resolver maps them to the
+                    // German short labels (1J/ALLE) — SegmentedPillControl's `label` lambda is not
+                    // @Composable, so build the lookup map in composable scope first.
+                    val rangeItems = IntelRange.entries.toList()
+                    val rangeLabels = rememberRangeShortLabels(rangeItems) { it.label }
                     SegmentedPillControl(
-                        items = IntelRange.entries.toList(),
+                        items = rangeItems,
                         selection = range,
-                        label = { it.label },
+                        label = { rangeLabels[it] ?: it.label },
                         onSelect = { range = it },
                     )
                 }
             }
             item {
+                val dayWord = stringResource(
+                    if (filtered.size == 1) {
+                        R.string.intelligence_day_singular
+                    } else {
+                        R.string.intelligence_day_plural
+                    },
+                )
                 Text(
-                    "${filtered.size} ${if (filtered.size == 1) "day" else "days"}",
+                    stringResource(R.string.intelligence_day_count, filtered.size, dayWord),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
@@ -146,7 +165,7 @@ fun IntelligenceScreen(vm: AppViewModel) {
                 item {
                     NoopCard(padding = 18.dp) {
                         Text(
-                            "No scored days in this window. Widen the range or import more history.",
+                            stringResource(R.string.intelligence_no_days_in_window),
                             style = NoopType.subhead,
                             color = Palette.textSecondary,
                         )
@@ -176,8 +195,15 @@ fun IntelligenceScreen(vm: AppViewModel) {
 private fun ForecastCard(f: RecoveryForecast) {
     val charge = f.charge.roundToInt()
     val band = f.band.roundToInt()
+    // Hoisted out of the readout Text() below: stringResource is @Composable-only and can't run
+    // inside the "…" + "…" expression argument. The label rounds to the nearest 30 min.
+    val sleepLabel = sleepHoursLabel(f.plannedSleepHours)
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Tomorrow's Charge", overline = "Evening forecast", trailing = "Estimate")
+        SectionHeader(
+            stringResource(R.string.intelligence_tomorrows_charge),
+            overline = stringResource(R.string.intelligence_evening_forecast),
+            trailing = stringResource(R.string.intelligence_estimate),
+        )
         NoopCard(padding = 20.dp) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -193,13 +219,14 @@ private fun ForecastCard(f: RecoveryForecast) {
                         lineWidth = 168.dp * 0.10f,
                     )
                     Text(
-                        "± $band",
+                        stringResource(R.string.intel_forecast_band, band),
                         style = NoopType.captionNumber,
                         color = Palette.textTertiary,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     Text(
-                        Palette.recoveryState(f.charge),
+                        // Localized recovery-state word; Palette.recoveryState stays canonical en-US.
+                        recoveryStateLabel(f.charge),
                         style = NoopType.overline,
                         color = Palette.recoveryColor(f.charge),
                         modifier = Modifier.padding(top = 2.dp),
@@ -210,15 +237,17 @@ private fun ForecastCard(f: RecoveryForecast) {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        "You'll likely wake around $charge ± $band Charge if you sleep about " +
-                            "${sleepHoursLabel(f.plannedSleepHours)} tonight.",
+                        stringResource(
+                            R.string.intelligence_forecast_readout,
+                            charge,
+                            band,
+                            sleepLabel,
+                        ),
                         style = NoopType.subhead,
                         color = Palette.textSecondary,
                     )
                     Text(
-                        "Estimate from today's effort, your typical sleep and your ${f.nights}-night " +
-                            "recovery baseline — not a measurement. Your real Charge is scored from " +
-                            "tomorrow's HRV when you wake.",
+                        stringResource(R.string.intelligence_forecast_disclaimer, f.nights),
                         style = NoopType.footnote,
                         color = Palette.textTertiary,
                     )
@@ -228,12 +257,17 @@ private fun ForecastCard(f: RecoveryForecast) {
     }
 }
 
-/** "~7h" / "~7h 30m" for the planned-sleep assumption (rounded to the nearest 30 min). */
+/** "7h" / "7h 30m" for the planned-sleep assumption (rounded to the nearest 30 min). */
+@Composable
 private fun sleepHoursLabel(hours: Double): String {
     val half = (hours * 2).roundToInt() / 2.0
     val h = half.toInt()
     val m = ((half - h) * 60).roundToInt()
-    return if (m == 0) "${h}h" else "${h}h ${m}m"
+    return if (m == 0) {
+        stringResource(R.string.intelligence_sleep_hours_h, h)
+    } else {
+        stringResource(R.string.intelligence_sleep_hours_h_m, h, m)
+    }
 }
 
 // MARK: - Explainer (ported from IntelligenceView.explainerCard)
@@ -252,15 +286,17 @@ private fun ExplainerCard(effortScale: EffortScale) {
                     tint = Palette.chargeColor,
                     modifier = Modifier.size(20.dp),
                 )
-                Text("How this works", style = NoopType.headline, color = Palette.textPrimary)
+                Text(
+                    stringResource(R.string.intelligence_how_this_works),
+                    style = NoopType.headline,
+                    color = Palette.textPrimary,
+                )
             }
             Text(
-                "Charge weighs your heart-rate variability against your personal baseline " +
-                    "(~55%), resting heart rate (~20%), rest quality (~15%), respiration (~5%) " +
-                    "and skin-temperature deviation (~5%). Effort is a 0–${UnitFormatter.effortScaleMax(effortScale)} " +
-                    "cardiovascular load from time spent in each heart-rate zone. Rest is staged " +
-                    "from movement and heart rate. The full on-device recompute from the strap's raw " +
-                    "streams is a later port; the scores below are read from each day's cached metrics.",
+                stringResource(
+                    R.string.intelligence_explainer_body,
+                    UnitFormatter.effortScaleMax(effortScale),
+                ),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -284,8 +320,7 @@ private fun EmptyNote() {
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                "No scored days yet. Sync your strap to collect raw streams — charge, " +
-                    "effort and rest are scored once a day's data is in.",
+                stringResource(R.string.intelligence_empty_note),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -303,25 +338,53 @@ private fun EmptyNote() {
 private fun ModelBreakdownCard(effortScale: EffortScale) {
     NoopCard(padding = 20.dp, tint = Palette.chargeColor) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Overline("Charge model")
-            WeightRow("Heart-rate variability", "~55%", 0.55f, Palette.metricPurple)
-            WeightRow("Resting heart rate", "~20%", 0.20f, Palette.metricRose)
-            WeightRow("Rest quality", "~15%", 0.15f, Palette.metricCyan)
-            WeightRow("Respiration", "~5%", 0.05f, Palette.accent)
-            WeightRow("Skin-temperature deviation", "~5%", 0.05f, Palette.metricAmber)
+            Overline(stringResource(R.string.intelligence_charge_model))
+            WeightRow(
+                stringResource(R.string.intelligence_weight_hrv),
+                stringResource(R.string.intelligence_weight_hrv_pct),
+                0.55f,
+                Palette.metricPurple,
+            )
+            WeightRow(
+                stringResource(R.string.intelligence_weight_rhr),
+                stringResource(R.string.intelligence_weight_rhr_pct),
+                0.20f,
+                Palette.metricRose,
+            )
+            WeightRow(
+                stringResource(R.string.intelligence_weight_rest_quality),
+                stringResource(R.string.intelligence_weight_rest_quality_pct),
+                0.15f,
+                Palette.metricCyan,
+            )
+            WeightRow(
+                stringResource(R.string.intelligence_weight_respiration),
+                stringResource(R.string.intelligence_weight_respiration_pct),
+                0.05f,
+                Palette.accent,
+            )
+            WeightRow(
+                stringResource(R.string.intelligence_weight_skin_temp),
+                stringResource(R.string.intelligence_weight_skin_temp_pct),
+                0.05f,
+                Palette.metricAmber,
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Effort",
+                    stringResource(R.string.intelligence_stat_effort),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    "0–${UnitFormatter.effortScaleMax(effortScale)} scale",
+                    stringResource(
+                        R.string.intelligence_effort_scale,
+                        UnitFormatter.effortScaleMax(effortScale),
+                    ),
                     style = NoopType.captionNumber,
                     color = Palette.effortColor,
                 )
@@ -389,37 +452,40 @@ private fun DayCard(d: DailyMetric, effortScale: EffortScale) {
                 // over the computed "-noop" row), so a strap-scored night reads "On-device" while a day an
                 // import covers reads "Whoop" / "Apple Health". Computed rows keep the charge tint; imports
                 // use the accent tint to stand out. Mirrors macOS IntelligenceEngine.DaySource. (Sleep §2.6.)
+                // Localize only the DISPLAY at the render site: the tint is the canonical
+                // daySourceBadge() merge logic (shared with SleepScreen), the label is resolved
+                // from the structured deviceId through the German string resources.
                 val src = daySourceBadge(d.deviceId)
-                SourceBadge(src.first, tint = src.second)
+                SourceBadge(daySourceLabel(d.deviceId), tint = src.second)
             }
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 DayStat(
-                    "Charge",
-                    d.recovery?.let { "${it.roundToInt()}%" } ?: "—",
+                    stringResource(R.string.intelligence_stat_charge),
+                    d.recovery?.let { stringResource(R.string.intelligence_pct_value, it.roundToInt()) } ?: "—",
                     d.recovery?.let { Palette.recoveryColor(it) } ?: Palette.textSecondary,
                     Modifier.weight(1f),
                 )
                 DayStat(
-                    "Effort",
+                    stringResource(R.string.intelligence_stat_effort),
                     d.strain?.let { UnitFormatter.effortDisplay(it, effortScale) } ?: "—",
                     d.strain?.let { Palette.strainColor(it) } ?: Palette.textSecondary,
                     Modifier.weight(1f),
                 )
                 DayStat(
-                    "Rest",
+                    stringResource(R.string.intelligence_stat_rest),
                     sleepValue(d.totalSleepMin),
                     Palette.restColor,
                     Modifier.weight(1f),
                 )
                 DayStat(
-                    "HRV",
+                    stringResource(R.string.intelligence_stat_hrv),
                     d.avgHrv?.let { "${it.roundToInt()}" } ?: "—",
                     Palette.metricPurple,
                     Modifier.weight(1f),
                 )
                 DayStat(
-                    "RHR",
+                    stringResource(R.string.intelligence_stat_rhr),
                     d.restingHr?.toString() ?: "—",
                     Palette.metricRose,
                     Modifier.weight(1f),
@@ -478,6 +544,21 @@ internal fun daySourceBadge(deviceId: String): Pair<String, Color> = when {
     deviceId == com.noop.data.WhoopRepository.APPLE_HEALTH_SOURCE ||
         deviceId == com.noop.data.WhoopRepository.HEALTH_CONNECT_SOURCE -> "Apple Health" to Palette.accent
     else -> "Whoop" to Palette.accent
+}
+
+/**
+ * Localized DISPLAY label for the By-Day source badge, resolved from the structured [deviceId].
+ * Mirrors the same merge cases as [daySourceBadge] (which stays canonical en-US, shared with
+ * SleepScreen and the dashboard merge logic); this routes only the word through the German string
+ * resources — the producer-vs-display split the rest of the i18n uses. (Sleep overhaul §2.6.)
+ */
+@Composable
+private fun daySourceLabel(deviceId: String): String = when {
+    deviceId.endsWith("-noop") -> stringResource(R.string.intelligence_source_on_device)
+    deviceId == com.noop.data.WhoopRepository.APPLE_HEALTH_SOURCE ||
+        deviceId == com.noop.data.WhoopRepository.HEALTH_CONNECT_SOURCE ->
+        stringResource(R.string.intelligence_source_apple_health)
+    else -> stringResource(R.string.intelligence_source_whoop)
 }
 
 /** Recent-window options for the By Day list. `days == null` means show everything. */

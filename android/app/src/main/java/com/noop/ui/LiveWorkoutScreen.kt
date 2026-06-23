@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -97,7 +100,7 @@ fun LiveWorkoutScreen(vm: AppViewModel, onClose: () -> Unit) {
             // Header — sport + elapsed clock.
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Overline("Recording workout", color = Palette.effortColor)
+                    Overline(stringResource(R.string.liveworkout_recording_workout), color = Palette.effortColor)
                     Text(w.sport.name, style = NoopType.title1, color = Palette.textPrimary)
                 }
                 Text(
@@ -118,11 +121,11 @@ fun LiveWorkoutScreen(vm: AppViewModel, onClose: () -> Unit) {
 
             // Live stats grid — avg / peak / effort, from the captured window.
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap), modifier = Modifier.fillMaxWidth()) {
-                StatTile(modifier = Modifier.weight(1f), label = "Avg", value = if (w.avgHr > 0) "${w.avgHr}" else "—",
+                StatTile(modifier = Modifier.weight(1f), label = stringResource(R.string.liveworkout_stat_avg), value = if (w.avgHr > 0) "${w.avgHr}" else "—",
                     accent = if (w.avgHr > 0) Palette.metricRose else Palette.textPrimary)
-                StatTile(modifier = Modifier.weight(1f), label = "Peak", value = if (w.peakHr > 0) "${w.peakHr}" else "—",
+                StatTile(modifier = Modifier.weight(1f), label = stringResource(R.string.liveworkout_stat_peak), value = if (w.peakHr > 0) "${w.peakHr}" else "—",
                     accent = if (w.peakHr > 0) Palette.metricRose else Palette.textPrimary)
-                StatTile(modifier = Modifier.weight(1f), label = "Effort", value = UnitFormatter.effortDisplay(w.liveStrain, effortScale),
+                StatTile(modifier = Modifier.weight(1f), label = stringResource(R.string.live_stat_effort), value = UnitFormatter.effortDisplay(w.liveStrain, effortScale),
                     accent = Palette.strainColor(w.liveStrain))
             }
 
@@ -138,7 +141,7 @@ fun LiveWorkoutScreen(vm: AppViewModel, onClose: () -> Unit) {
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Palette.statusCritical, contentColor = Palette.surfaceBase,
                 ),
-            ) { Text("End workout", style = NoopType.headline) }
+            ) { Text(stringResource(R.string.live_end_workout), style = NoopType.headline) }
         }
     }
 }
@@ -158,16 +161,16 @@ private fun SensorRow(sensor: StandardHrSource.SensorMetrics) {
     val power = StandardHrSource.formatPowerWatts(sensor.powerWatts)
     if (speed == null && cadence == null && power == null) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Overline("Sensor")
+        Overline(stringResource(R.string.liveworkout_sensor))
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap), modifier = Modifier.fillMaxWidth()) {
             if (speed != null) {
-                StatTile(modifier = Modifier.weight(1f), label = "Speed", value = "$speed km/h", accent = Palette.effortColor)
+                StatTile(modifier = Modifier.weight(1f), label = stringResource(R.string.liveworkout_sensor_speed), value = stringResource(R.string.liveworkout_sensor_speed_value, speed), accent = Palette.effortColor)
             }
             if (cadence != null) {
-                StatTile(modifier = Modifier.weight(1f), label = "Cadence", value = "$cadence/min", accent = Palette.effortColor)
+                StatTile(modifier = Modifier.weight(1f), label = stringResource(R.string.liveworkout_sensor_cadence), value = stringResource(R.string.liveworkout_sensor_cadence_value, cadence), accent = Palette.effortColor)
             }
             if (power != null) {
-                StatTile(modifier = Modifier.weight(1f), label = "Power", value = "$power W", accent = Palette.effortColor)
+                StatTile(modifier = Modifier.weight(1f), label = stringResource(R.string.liveworkout_sensor_power), value = stringResource(R.string.liveworkout_sensor_power_value, power), accent = Palette.effortColor)
             }
         }
     }
@@ -181,7 +184,7 @@ private fun EffortGauge(liveStrain: Double, effortScale: EffortScale) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Overline("Effort building", color = Palette.effortColor)
+            Overline(stringResource(R.string.liveworkout_effort_building), color = Palette.effortColor)
             StrainGauge(
                 strain = UnitFormatter.effortValue(liveStrain, effortScale),
                 outOf = if (effortScale == EffortScale.WHOOP) 21.0 else 100.0,
@@ -206,7 +209,7 @@ private fun HeroHeartRate(bpm: Int?, zone: Int) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Overline("Heart rate")
+            Overline(stringResource(R.string.liveworkout_heart_rate))
             Box(contentAlignment = Alignment.Center) {
                 // Soft zone-tinted halo behind the numeral — the Bevel glow.
                 Box(
@@ -217,9 +220,10 @@ private fun HeroHeartRate(bpm: Int?, zone: Int) {
                 )
                 Text(bpm?.toString() ?: "—", style = NoopType.number(80f), color = tint)
             }
-            Text("bpm", style = NoopType.subhead, color = Palette.textSecondary)
+            Text(stringResource(R.string.liveworkout_bpm), style = NoopType.subhead, color = Palette.textSecondary)
             Text(
-                if (zone >= 1) "Zone $zone · ${zoneName(zone)}" else "Below Zone 1",
+                if (zone >= 1) stringResource(R.string.liveworkout_zone_label_with_name, zone, zoneName(zone))
+                else stringResource(R.string.liveworkout_below_zone_1),
                 style = NoopType.captionNumber,
                 color = tint,
                 textAlign = TextAlign.Center,
@@ -231,7 +235,7 @@ private fun HeroHeartRate(bpm: Int?, zone: Int) {
 @Composable
 private fun ZoneRail(zone: Int, zoneSet: com.noop.analytics.HrZoneSet) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Overline("HR zone")
+        Overline(stringResource(R.string.liveworkout_hr_zone))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
             (1..5).forEach { z ->
                 val active = z == zone
@@ -263,19 +267,31 @@ private fun ZoneRail(zone: Int, zoneSet: com.noop.analytics.HrZoneSet) {
         val band = zoneSet.zones.firstOrNull { it.number == zone }
         Text(
             if (band != null)
-                "Zone $zone: ${band.lower.toInt()}–${band.upper.toInt()} bpm (${(band.lowerPct * 100).toInt()}–${(band.upperPct * 100).toInt()}% max HR)"
-            else "Warming up — keep moving to climb into Zone 1.",
+                stringResource(
+                    R.string.liveworkout_zone_band,
+                    zone,
+                    band.lower.toInt(),
+                    band.upper.toInt(),
+                    (band.lowerPct * 100).toInt(),
+                    (band.upperPct * 100).toInt(),
+                )
+            else stringResource(R.string.liveworkout_warming_up),
             style = NoopType.footnote,
             color = Palette.textTertiary,
         )
     }
 }
 
-private fun zoneName(zone: Int): String = when (zone) {
-    1 -> "Recovery"
-    2 -> "Fat burn"
-    3 -> "Aerobic"
-    4 -> "Threshold"
-    5 -> "Maximum"
-    else -> ""
+@androidx.annotation.StringRes
+private fun zoneNameRes(zone: Int): Int? = when (zone) {
+    1 -> R.string.hr_zone_recovery
+    2 -> R.string.hr_zone_fat_burn
+    3 -> R.string.hr_zone_aerobic
+    4 -> R.string.hr_zone_threshold
+    5 -> R.string.hr_zone_maximum
+    else -> null
 }
+
+/** Localized HR-zone name; "" for an out-of-range zone, matching the old behaviour. */
+@Composable
+private fun zoneName(zone: Int): String = zoneNameRes(zone)?.let { stringResource(it) } ?: ""

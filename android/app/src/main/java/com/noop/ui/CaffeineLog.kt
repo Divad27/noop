@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -151,18 +154,21 @@ fun CaffeineLogCard() {
     var bedtimeMinutes by remember { mutableStateOf(NoopPrefs.caffeineBedtimeMinutes(context)) }
     val cutoffMinutes = CaffeineDecay.cutoffMinutesSinceMidnight(bedtimeMinutes)
 
+    // Hoisted out of the non-composable `semantics {}` lambda + Toast call below.
+    val lateNudgeCd = stringResource(R.string.caffeine_log_late_nudge_cd)
+    val caffeineLoggedToast = stringResource(R.string.caffeine_log_logged_toast)
+
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
-                Overline("Log")
-                Text("Caffeine", style = NoopType.title2, color = Palette.textPrimary)
+                Overline(stringResource(R.string.caffeine_log_log))
+                Text(stringResource(R.string.caffeine_log_caffeine), style = NoopType.title2, color = Palette.textPrimary)
             }
         }
         NoopCard {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Log a coffee, tea, or energy drink and NOOP shows a rough estimate of how much may " +
-                        "still be active. It's a guide based on a typical 5 to 6 hour half-life, not a measurement.",
+                    stringResource(R.string.caffeine_log_log_a_coffee_tea_or_energy),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
@@ -176,9 +182,9 @@ fun CaffeineLogCard() {
                 // late intake below. A guide from the same half-life model, not a rule.
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Late-caffeine nudge", style = NoopType.body, color = Palette.textPrimary)
+                        Text(stringResource(R.string.caffeine_log_late_caffeine_nudge), style = NoopType.body, color = Palette.textPrimary)
                         Text(
-                            "Flag drinks late enough to still be active at bedtime.",
+                            stringResource(R.string.caffeine_log_flag_drinks_late_enough_to),
                             style = NoopType.footnote,
                             color = Palette.textTertiary,
                         )
@@ -196,16 +202,16 @@ fun CaffeineLogCard() {
                             uncheckedTrackColor = Palette.surfaceInset,
                             uncheckedBorderColor = Palette.hairline,
                         ),
-                        modifier = Modifier.semantics { contentDescription = "Late-caffeine nudge" },
+                        modifier = Modifier.semantics { contentDescription = lateNudgeCd },
                     )
                 }
                 if (cutoffEnabled) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Bedtime", style = NoopType.footnote, color = Palette.textSecondary)
+                        Text(stringResource(R.string.sleep_bedtime), style = NoopType.footnote, color = Palette.textSecondary)
                         Spacer(Modifier.weight(1f))
                         TimeChip(
                             minutes = bedtimeMinutes,
-                            accessibilityLabel = "Bedtime for the caffeine cutoff",
+                            accessibilityLabel = stringResource(R.string.caffeine_log_bedtime_cd),
                             onPicked = {
                                 bedtimeMinutes = it
                                 NoopPrefs.setCaffeineBedtimeMinutes(context, it)
@@ -213,9 +219,11 @@ fun CaffeineLogCard() {
                         )
                     }
                     Text(
-                        "Have your last caffeine by about ${clockLabel(cutoffMinutes)} to clear most of it " +
-                            "by ${clockLabel(bedtimeMinutes)}. A rough guide from a typical 5 to 6 hour " +
-                            "half-life, not a rule.",
+                        stringResource(
+                            R.string.caffeine_log_cutoff_hint,
+                            clockLabel(cutoffMinutes),
+                            clockLabel(bedtimeMinutes),
+                        ),
                         style = NoopType.footnote,
                         color = Palette.textTertiary,
                     )
@@ -229,7 +237,7 @@ fun CaffeineLogCard() {
                         value = mgDraft,
                         onValueChange = { mgDraft = it },
                         placeholder = {
-                            Text("Amount in mg (optional)", style = NoopType.body, color = Palette.textTertiary)
+                            Text(stringResource(R.string.caffeine_log_amount_in_mg_optional), style = NoopType.body, color = Palette.textTertiary)
                         },
                         singleLine = true,
                         textStyle = NoopType.body,
@@ -239,19 +247,21 @@ fun CaffeineLogCard() {
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("mg", style = NoopType.footnote, color = Palette.textTertiary)
+                    Text(stringResource(R.string.caffeine_log_mg), style = NoopType.footnote, color = Palette.textTertiary)
                 }
 
                 // Log "now" or a quick number of hours ago.
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Had it", style = NoopType.footnote, color = Palette.textSecondary)
+                    Text(stringResource(R.string.caffeine_log_had_it), style = NoopType.footnote, color = Palette.textSecondary)
                     Spacer(Modifier.weight(1f))
                     for (h in intArrayOf(0, 1, 2, 3)) {
-                        CaffeineChip(if (h == 0) "Now" else "${h}h ago") {
+                        val chipLabel = if (h == 0) stringResource(R.string.caffeine_log_now)
+                        else stringResource(R.string.caffeine_log_h_ago, h)
+                        CaffeineChip(chipLabel) {
                             val at = (System.currentTimeMillis() / 1000L) - h * 3600L
                             intakes = addCaffeineIntake(context, at, mgDraft)
                             mgDraft = ""
-                            Toast.makeText(context, "Caffeine logged.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, caffeineLoggedToast, Toast.LENGTH_SHORT).show()
                         }
                         Spacer(Modifier.width(6.dp))
                     }
@@ -259,7 +269,7 @@ fun CaffeineLogCard() {
 
                 if (intakes.isNotEmpty()) {
                     CaffeineDivider()
-                    Text("Logged today", style = NoopType.caption, color = Palette.textTertiary)
+                    Text(stringResource(R.string.mind_logged_today), style = NoopType.caption, color = Palette.textTertiary)
                     intakes.forEach { intake ->
                         val late = cutoffEnabled && isIntakePastCutoff(intake, bedtimeMinutes)
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -271,7 +281,7 @@ fun CaffeineLogCard() {
                                 )
                                 if (late) {
                                     Text(
-                                        "After your ${clockLabel(cutoffMinutes)} cutoff — may still be active at bed.",
+                                        stringResource(R.string.caffeine_log_after_cutoff, clockLabel(cutoffMinutes)),
                                         style = NoopType.caption,
                                         color = Palette.statusWarning,
                                     )
@@ -293,8 +303,8 @@ private fun CaffeineActiveHint(estimate: CaffeineActiveEstimate, hasAnyLog: Bool
     if (estimate.hasActive) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                estimate.totalRemainingMg?.let { "About ${it.roundToInt()} mg may still be active" }
-                    ?: "Caffeine may still be active",
+                estimate.totalRemainingMg?.let { stringResource(R.string.caffeine_log_about_mg_active, it.roundToInt()) }
+                    ?: stringResource(R.string.caffeine_log_may_still_be_active),
                 style = NoopType.headline,
                 color = Palette.textPrimary,
             )
@@ -302,32 +312,38 @@ private fun CaffeineActiveHint(estimate: CaffeineActiveEstimate, hasAnyLog: Bool
         }
     } else {
         Text(
-            if (!hasAnyLog) "No caffeine logged. Log an intake to see an estimate."
-            else "Estimated mostly cleared. Nothing logged is likely still active.",
+            if (!hasAnyLog) stringResource(R.string.caffeine_log_no_caffeine_logged)
+            else stringResource(R.string.caffeine_log_mostly_cleared),
             style = NoopType.footnote,
             color = Palette.textTertiary,
         )
     }
 }
 
+@Composable
 private fun caffeineActiveDetail(estimate: CaffeineActiveEstimate): String {
     val parts = ArrayList<String>()
-    estimate.hoursSinceMostRecentActive?.let { parts.add("most recent intake about ${caffeineHoursLabel(it)} ago") }
-    if (estimate.activeIntakeCount > 1) parts.add("${estimate.activeIntakeCount} intakes still in the estimate")
+    estimate.hoursSinceMostRecentActive?.let { parts.add(stringResource(R.string.caffeine_log_most_recent_ago, caffeineHoursLabel(it))) }
+    if (estimate.activeIntakeCount > 1) parts.add(stringResource(R.string.caffeine_log_intakes_in_estimate, estimate.activeIntakeCount))
     val lead = if (parts.isEmpty()) "" else parts.joinToString(" · ") + ". "
-    return lead + "Rough guide only, based on what you logged."
+    return stringResource(R.string.caffeine_log_rough_guide, lead)
 }
 
+@Composable
 private fun caffeineHoursLabel(hrs: Double): String {
-    if (hrs < 1) return "under an hour"
+    if (hrs < 1) return stringResource(R.string.caffeine_log_under_an_hour)
     val r = hrs.roundToInt()
-    return if (r == 1) "1 hour" else "$r hours"
+    return if (r == 1) stringResource(R.string.caffeine_log_one_hour) else stringResource(R.string.caffeine_log_n_hours, r)
 }
 
 private fun caffeineIntakeLabel(intake: CaffeineIntake, context: Context): String {
     val time = android.text.format.DateFormat.getTimeFormat(context)
         .format(java.util.Date(intake.atEpochSec * 1000L))
-    return if (intake.mg != null) "$time · ${intake.mg.roundToInt()} mg" else "$time · amount not logged"
+    return if (intake.mg != null) {
+        context.getString(R.string.caffeine_log_time_and_mg, time, intake.mg.roundToInt())
+    } else {
+        context.getString(R.string.caffeine_log_amount_not_logged, time)
+    }
 }
 
 /** A minutes-since-midnight value as a wall-clock label (e.g. "2:30 PM" / "14:30"), respecting the
@@ -373,7 +389,7 @@ private fun CaffeineChip(label: String, onClick: () -> Unit) {
 private fun CaffeineRemoveButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     Text(
-        "Remove",
+        stringResource(R.string.devices_menu_remove),
         style = NoopType.caption,
         color = Palette.statusCritical,
         modifier = Modifier

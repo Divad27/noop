@@ -44,9 +44,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noop.R
 import com.noop.data.DailyMetric
 import com.noop.data.JournalEntry
 import com.noop.data.WorkoutRow
@@ -261,7 +263,10 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
     // otherwise insert a 0-height row that the 20dp arrangement flanks, shifting layout. The one
     // composable-only block (`run { … remember(snapshot) … }`) moves inside its `item { }` (which is
     // @Composable). Order is preserved exactly.
-    LazyScreenScaffold(title = "Insights", subtitle = "Interrogate what affects what.") {
+    LazyScreenScaffold(
+        title = stringResource(R.string.insights_title),
+        subtitle = stringResource(R.string.insights_subtitle),
+    ) {
 
         // --- "What moves you" deep-link into the v5 Insights Hub (ranked, lag-aware ranked-effect feed +
         //     personal alcohol/caffeine dose-response). The honest in-Insights entry point; the hub is its
@@ -274,7 +279,7 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
         if (preFilledFromYesterday) {
             item {
             Text(
-                "Pre-filled from last night — tap to confirm or change.",
+                stringResource(R.string.insights_prefilled_from_last_night),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
                 modifier = Modifier.fillMaxWidth(),
@@ -422,7 +427,7 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
         if (!journalLoaded) {
             NoopCard {
                 Text(
-                    "Reading your journal and outcomes…",
+                    stringResource(R.string.insights_reading_journal),
                     style = NoopType.subhead,
                     color = Palette.textTertiary,
                 )
@@ -430,10 +435,8 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
         } else if (behaviours.isEmpty()) {
             // No journal yet — explain, without dead-ending on a paid export.
             DataPendingNote(
-                title = "Insights read your journal and outcomes",
-                body = "Log behaviours above — after a few days of answers, NOOP ranks how each " +
-                    "one moves your recovery, HRV and sleep. Importing a WHOOP export (which " +
-                    "includes its journal) backfills history instantly.",
+                title = stringResource(R.string.insights_pending_title),
+                body = stringResource(R.string.insights_pending_body),
             )
         } else {
             BehaviourSection(
@@ -466,13 +469,13 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
 
 @Composable
 private fun WhatMovesYouLink(onOpen: () -> Unit) {
+    val linkCd = stringResource(R.string.insights_what_moves_you_cd)
     NoopCard(
         tint = Palette.chargeColor,
         modifier = Modifier
             .clickable(onClick = onOpen)
             .semantics {
-                contentDescription =
-                    "What moves you. Ranked patterns in your own data, and your dose-response."
+                contentDescription = linkCd
             },
     ) {
         Row(
@@ -496,10 +499,9 @@ private fun WhatMovesYouLink(onOpen: () -> Unit) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 // WHOOP tappable-card title: UPPERCASE tracked WHITE label + a trailing "›" chevron
                 // glyph (mirrors the iOS "WHAT MOVES YOU ›" overline). The descriptive line sits beneath.
-                Overline("What moves you ›", color = Palette.textPrimary)
+                Overline(stringResource(R.string.insights_what_moves_you_title), color = Palette.textPrimary)
                 Text(
-                    "Ranked, lag-aware: which of your habits actually move your Charge — plus your " +
-                        "personal alcohol/caffeine dose-response.",
+                    stringResource(R.string.insights_what_moves_you_blurb),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
@@ -558,11 +560,14 @@ internal fun computeActivityCosts(
 @Composable
 private fun ActivityCostSection(costs: List<com.noop.analytics.ActivityCost>) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Activity Cost", overline = "What each activity costs your recovery")
+        SectionHeader(
+            stringResource(R.string.insights_activity_cost_title),
+            overline = stringResource(R.string.insights_activity_cost_overline),
+        )
         if (costs.isEmpty()) {
             NoopCard {
                 Text(
-                    "Tag a few sessions of the same activity and NOOP will learn its personal recovery cost.",
+                    stringResource(R.string.insights_activity_empty),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
@@ -610,42 +615,46 @@ private fun ActivityCostCard(cost: com.noop.analytics.ActivityCost) {
                     modifier = Modifier.weight(1f),
                 )
                 StatePill(
-                    if (solid) "SOLID" else "BUILDING",
+                    if (solid) stringResource(R.string.insights_activity_solid)
+                    else stringResource(R.string.insights_activity_building),
                     tone = if (solid) StrandTone.Positive else StrandTone.Accent,
                     showsDot = false,
                 )
             }
-            Text(cost.sentence(), style = NoopType.subhead, color = Palette.textSecondary)
+            Text(insightsActivityCostSentence(cost), style = NoopType.subhead, color = Palette.textSecondary)
             // 2×2 StatTile grid so tile heights stay uniform on phone widths (matches SummarySection).
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
                 StatTile(
                     modifier = Modifier.weight(1f),
-                    label = "Next morning",
+                    label = stringResource(R.string.insights_activity_next_morning),
                     value = "${cost.meanNextMorning.roundToInt()}",
-                    caption = "Charge · $pointsLabel pts",
+                    caption = stringResource(R.string.insights_activity_next_morning_caption, pointsLabel),
                     accent = accent,
                 )
                 StatTile(
                     modifier = Modifier.weight(1f),
-                    label = "Rest baseline",
+                    label = stringResource(R.string.insights_activity_rest_baseline),
                     value = "${cost.baselineMean.roundToInt()}",
-                    caption = "untouched days",
+                    caption = stringResource(R.string.insights_activity_rest_baseline_caption),
                     accent = Palette.textPrimary,
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
                 StatTile(
                     modifier = Modifier.weight(1f),
-                    label = "Bounce back",
-                    value = cost.daysToBaseline?.let { "${it}d" } ?: "—",
-                    caption = if (cost.daysToBaseline != null) "to baseline" else "not within 7d",
+                    label = stringResource(R.string.insights_activity_bounce_back),
+                    value = cost.daysToBaseline?.let { stringResource(R.string.insights_activity_days_suffix, it) }
+                        ?: stringResource(R.string.insights_dash),
+                    caption = if (cost.daysToBaseline != null) stringResource(R.string.insights_activity_bounce_to_baseline)
+                    else stringResource(R.string.insights_activity_bounce_not_within),
                     accent = Palette.chargeColor,
                 )
                 StatTile(
                     modifier = Modifier.weight(1f),
-                    label = "Sessions",
+                    label = stringResource(R.string.insights_activity_sessions),
                     value = "${cost.n}",
-                    caption = if (solid) "solid" else "building",
+                    caption = if (solid) stringResource(R.string.insights_activity_sessions_solid)
+                    else stringResource(R.string.insights_activity_sessions_building),
                     accent = Palette.textPrimary,
                 )
             }
@@ -668,8 +677,11 @@ private fun BehaviourSection(
         ) {
             Box(modifier = Modifier.weight(1f)) {
                 SectionHeader(
-                    "Behaviour Effects",
-                    overline = "What moves your ${outcome.outcomeName.lowercase(Locale.US)}",
+                    stringResource(R.string.insights_behaviour_effects_title),
+                    overline = stringResource(
+                        R.string.insights_behaviour_effects_overline,
+                        insightsOutcomeLabel(outcome).lowercase(Locale.US),
+                    ),
                 )
             }
             SegmentedPillControl(
@@ -683,9 +695,10 @@ private fun BehaviourSection(
         if (ranked.isEmpty()) {
             NoopCard {
                 Text(
-                    "Not enough overlap between your journal answers and " +
-                        "${outcome.outcomeName.lowercase(Locale.US)} to measure an effect yet. " +
-                        "Keep logging — effects need days both with and without each behaviour.",
+                    stringResource(
+                        R.string.insights_no_overlap,
+                        insightsOutcomeLabel(outcome).lowercase(Locale.US),
+                    ),
                     style = NoopType.subhead,
                     color = Palette.textTertiary,
                 )
@@ -713,9 +726,11 @@ private fun EffectCard(e: BehaviorEffect, outcome: Outcome) {
         false -> if (e.significant) StrandTone.Critical else StrandTone.Warning
     }
     val tintColor = tone.color
-    val arrow = if (e.delta > 0) "↑" else if (e.delta < 0) "↓" else "→"
-    val deltaText = "$arrow ${String.format(Locale.US, "%.1f", abs(e.delta))}"
-    val sentence = effectSentence(e, outcome)
+    val arrow = if (e.delta > 0) stringResource(R.string.insights_effect_arrow_up)
+        else if (e.delta < 0) stringResource(R.string.insights_effect_arrow_down)
+        else stringResource(R.string.insights_effect_arrow_flat)
+    val deltaText = "$arrow ${germanDecimal1(abs(e.delta))}"
+    val sentence = insightsEffectSentence(e, outcome)
 
     // The card wash reads as the OUTCOME's colour world (so the whole Behaviour Effects
     // section sits in one world), while the dot / StatTile accents stay sign-aware.
@@ -747,7 +762,8 @@ private fun EffectCard(e: BehaviorEffect, outcome: Outcome) {
                     )
                 }
                 StatePill(
-                    if (e.significant) "SIGNIFICANT" else "EXPLORATORY",
+                    if (e.significant) stringResource(R.string.insights_effect_significant)
+                    else stringResource(R.string.insights_effect_exploratory),
                     tone = if (e.significant) StrandTone.Positive else StrandTone.Neutral,
                     showsDot = false,
                 )
@@ -760,18 +776,18 @@ private fun EffectCard(e: BehaviorEffect, outcome: Outcome) {
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
                 StatTile(
                     modifier = Modifier.weight(1f),
-                    label = "With",
+                    label = stringResource(R.string.insights_stat_with),
                     value = outcome.format(e.meanWith),
-                    caption = "n = ${e.nWith}",
+                    caption = stringResource(R.string.insights_n_eq, e.nWith),
                     accent = tintColor,
                     delta = deltaText,
                     deltaColor = tintColor,
                 )
                 StatTile(
                     modifier = Modifier.weight(1f),
-                    label = "Without",
+                    label = stringResource(R.string.insights_stat_without),
                     value = outcome.format(e.meanWithout),
-                    caption = "n = ${e.nWithout}",
+                    caption = stringResource(R.string.insights_n_eq, e.nWithout),
                     accent = Palette.textPrimary,
                 )
             }
@@ -783,15 +799,15 @@ private fun EffectCard(e: BehaviorEffect, outcome: Outcome) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Overline("Effect size", modifier = Modifier.weight(1f))
+                Overline(stringResource(R.string.insights_effect_size), modifier = Modifier.weight(1f))
                 Text(
-                    String.format(Locale.US, "d = %.2f", e.cohensD),
+                    stringResource(R.string.insights_effect_d_value, String.format(Locale.US, "%.2f", e.cohensD)),
                     style = NoopType.captionNumber,
                     color = tintColor,
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    effectMagnitudeWord(e.cohensD),
+                    insightsEffectMagnitudeWord(e.cohensD),
                     style = NoopType.caption,
                     color = Palette.textTertiary,
                 )
@@ -839,8 +855,7 @@ private data class ExperimentSnapshot(
     val confidence: ExperimentConfidence,
 ) {
     val progress: Float get() = (daysElapsed.toFloat() / durationDays.coerceAtLeast(1)).coerceIn(0f, 1f)
-    val phaseLabel: String get() =
-        if (daysElapsed >= durationDays) "COMPLETE" else "DAY $daysElapsed/$durationDays"
+    val isComplete: Boolean get() = daysElapsed >= durationDays
     val phaseTone: StrandTone get() =
         if (daysElapsed >= durationDays) StrandTone.Positive else StrandTone.Accent
     val delta: Double? get() {
@@ -848,11 +863,31 @@ private data class ExperimentSnapshot(
         val b = baselineMean ?: return null
         return i - b
     }
-    val deltaCaption: String get() =
-        if (delta == null) "needs baseline + logged days" else "vs behaviour-free baseline"
 }
 
-private data class ExperimentConfidence(val label: String, val tone: StrandTone)
+/** Localized twin of the experiment phase pill (was ExperimentSnapshot.phaseLabel). */
+@Composable
+private fun experimentPhaseLabel(s: ExperimentSnapshot): String =
+    if (s.isComplete) stringResource(R.string.insights_experiment_phase_complete)
+    else stringResource(R.string.insights_experiment_phase_day, s.daysElapsed, s.durationDays)
+
+/** Localized twin of the change-caption (was ExperimentSnapshot.deltaCaption). */
+@Composable
+private fun experimentDeltaCaption(s: ExperimentSnapshot): String =
+    if (s.delta == null) stringResource(R.string.insights_experiment_delta_needs)
+    else stringResource(R.string.insights_experiment_delta_vs_baseline)
+
+/** Confidence tier — label resolved to the current locale at the render site. */
+private enum class ExperimentConfidenceTier { Stronger, Early, Low }
+
+private data class ExperimentConfidence(val tier: ExperimentConfidenceTier, val tone: StrandTone)
+
+@Composable
+private fun experimentConfidenceLabel(tier: ExperimentConfidenceTier): String = when (tier) {
+    ExperimentConfidenceTier.Stronger -> stringResource(R.string.insights_experiment_conf_stronger)
+    ExperimentConfidenceTier.Early -> stringResource(R.string.insights_experiment_conf_early)
+    ExperimentConfidenceTier.Low -> stringResource(R.string.insights_experiment_conf_low)
+}
 
 @Composable
 private fun ExperimentSection(
@@ -870,9 +905,10 @@ private fun ExperimentSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         SectionHeader(
-            "Personal Experiment",
-            overline = "N-of-1 protocol",
-            trailing = snapshot?.phaseLabel ?: "Setup",
+            stringResource(R.string.insights_experiment_title),
+            overline = stringResource(R.string.insights_experiment_overline),
+            trailing = snapshot?.let { experimentPhaseLabel(it) }
+                ?: stringResource(R.string.insights_experiment_setup),
         )
         NoopCard {
             if (snapshot != null) {
@@ -904,49 +940,53 @@ private fun ExperimentSetupCard(
     onLength: (ExperimentLength) -> Unit,
     onStart: () -> Unit,
 ) {
+    val outcomeLabels = rememberOutcomePillLabels()
+    val startCd = stringResource(R.string.insights_experiment_start)
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Run a clean personal test", style = NoopType.headline, color = Palette.textPrimary)
+                Text(
+                    stringResource(R.string.insights_experiment_run_test_title),
+                    style = NoopType.headline,
+                    color = Palette.textPrimary,
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Pick one behaviour you log, one outcome, and a short window. NOOP " +
-                        "compares the days you log the behaviour against your behaviour-free " +
-                        "days before the start.",
+                    stringResource(R.string.insights_experiment_run_test_body),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
             }
             Spacer(Modifier.width(12.dp))
-            StatePill("LOCAL ONLY", tone = StrandTone.Neutral, showsDot = false)
+            StatePill(stringResource(R.string.insights_experiment_local_only), tone = StrandTone.Neutral, showsDot = false)
         }
 
         if (candidates.isEmpty()) {
             Text(
-                "Log at least one behaviour above before starting an experiment.",
+                stringResource(R.string.insights_experiment_log_one_first),
                 style = NoopType.subhead,
                 color = Palette.textTertiary,
             )
         } else {
-            ExperimentField("Behaviour") {
+            ExperimentField(stringResource(R.string.insights_experiment_field_behaviour)) {
                 ExperimentBehaviourPicker(
                     candidates = candidates,
                     selection = resolvedBehaviour ?: candidates.first(),
                     onSelect = onBehaviour,
                 )
             }
-            ExperimentField("Outcome") {
+            ExperimentField(stringResource(R.string.insights_experiment_field_outcome)) {
                 SegmentedPillControl(
                     items = Outcome.entries.toList(),
                     selection = outcome,
-                    label = { it.label },
+                    label = { outcomeLabels.getValue(it) },
                     onSelect = onOutcome,
                 )
             }
-            ExperimentField("Window") {
+            ExperimentField(stringResource(R.string.insights_experiment_field_window)) {
                 SegmentedPillControl(
                     items = ExperimentLength.entries.toList(),
                     selection = length,
@@ -957,13 +997,13 @@ private fun ExperimentSetupCard(
 
             // Unified button system (mirrors iOS NoopButton("Start experiment", flask, .primary, fullWidth)).
             NoopButton(
-                text = "Start experiment",
+                text = stringResource(R.string.insights_experiment_start),
                 leadingIcon = Icons.Filled.Science,
                 kind = NoopButtonKind.Primary,
                 fullWidth = true,
                 enabled = resolvedBehaviour != null,
                 onClick = onStart,
-                modifier = Modifier.semantics { contentDescription = "Start experiment" },
+                modifier = Modifier.semantics { contentDescription = startCd },
             )
         }
     }
@@ -975,6 +1015,13 @@ private fun ActiveExperimentCard(
     onMark: (Boolean) -> Unit,
     onEnd: () -> Unit,
 ) {
+    val progressCd = stringResource(
+        R.string.insights_experiment_progress_cd,
+        snapshot.daysElapsed, snapshot.durationDays,
+    )
+    val markDoneCd = stringResource(R.string.insights_experiment_mark_done_cd)
+    val skipCd = stringResource(R.string.insights_experiment_skip_cd)
+    val endCd = stringResource(R.string.insights_experiment_end_cd)
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -990,14 +1037,18 @@ private fun ActiveExperimentCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Started ${snapshot.startDay} · testing ${snapshot.outcome.outcomeName.lowercase(Locale.US)}",
+                    stringResource(
+                        R.string.insights_experiment_started_testing,
+                        snapshot.startDay,
+                        insightsOutcomeLabel(snapshot.outcome).lowercase(Locale.US),
+                    ),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
             }
             Spacer(Modifier.width(12.dp))
             StatePill(
-                snapshot.phaseLabel,
+                experimentPhaseLabel(snapshot),
                 tone = snapshot.phaseTone,
                 pulsing = snapshot.daysElapsed < snapshot.durationDays,
             )
@@ -1013,32 +1064,35 @@ private fun ActiveExperimentCard(
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             ExperimentMeasure(
                 modifier = Modifier.weight(1f),
-                label = "Baseline",
-                value = snapshot.baselineMean?.let { snapshot.outcome.format(it) } ?: "—",
-                caption = "${snapshot.baselineCount} days without it",
+                label = stringResource(R.string.insights_experiment_baseline),
+                value = snapshot.baselineMean?.let { snapshot.outcome.format(it) }
+                    ?: stringResource(R.string.insights_dash),
+                caption = stringResource(R.string.insights_experiment_baseline_caption, snapshot.baselineCount),
                 tint = Palette.textSecondary,
             )
             ExperimentMeasure(
                 modifier = Modifier.weight(1f),
-                label = "Intervention",
-                value = snapshot.interventionMean?.let { snapshot.outcome.format(it) } ?: "—",
-                caption = "${snapshot.interventionCount} logged days",
+                label = stringResource(R.string.insights_experiment_intervention),
+                value = snapshot.interventionMean?.let { snapshot.outcome.format(it) }
+                    ?: stringResource(R.string.insights_dash),
+                caption = stringResource(R.string.insights_experiment_intervention_caption, snapshot.interventionCount),
                 tint = Palette.accent,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             ExperimentMeasure(
                 modifier = Modifier.weight(1f),
-                label = "Change",
+                label = stringResource(R.string.insights_experiment_change),
                 value = formatExperimentDelta(snapshot.delta, snapshot.outcome),
-                caption = snapshot.deltaCaption,
+                caption = experimentDeltaCaption(snapshot),
                 tint = experimentDeltaColor(snapshot),
             )
             ExperimentMeasure(
                 modifier = Modifier.weight(1f),
-                label = "Compliance",
-                value = "${snapshot.compliance.roundToInt()}%",
-                caption = if (snapshot.loggedToday) "logged today" else "not logged today",
+                label = stringResource(R.string.insights_experiment_compliance),
+                value = stringResource(R.string.insights_experiment_compliance_pct, snapshot.compliance.roundToInt()),
+                caption = if (snapshot.loggedToday) stringResource(R.string.insights_experiment_logged_today)
+                else stringResource(R.string.insights_experiment_not_logged_today),
                 tint = if (snapshot.loggedToday) Palette.statusPositive else Palette.statusWarning,
             )
         }
@@ -1052,8 +1106,7 @@ private fun ActiveExperimentCard(
                     .clip(RoundedCornerShape(50))
                     .background(Palette.hairline)
                     .semantics {
-                        contentDescription =
-                            "Experiment progress ${snapshot.daysElapsed} of ${snapshot.durationDays} days"
+                        contentDescription = progressCd
                     },
             ) {
                 Box(
@@ -1069,12 +1122,12 @@ private fun ActiveExperimentCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "${snapshot.daysElapsed} of ${snapshot.durationDays} days",
+                    stringResource(R.string.insights_experiment_days_of, snapshot.daysElapsed, snapshot.durationDays),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                     modifier = Modifier.weight(1f),
                 )
-                StatePill(snapshot.confidence.label, tone = snapshot.confidence.tone, showsDot = false)
+                StatePill(experimentConfidenceLabel(snapshot.confidence.tier), tone = snapshot.confidence.tone, showsDot = false)
             }
         }
 
@@ -1086,30 +1139,30 @@ private fun ActiveExperimentCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             NoopButton(
-                text = "Mark done",
+                text = stringResource(R.string.insights_experiment_mark_done),
                 leadingIcon = Icons.Filled.CheckCircle,
                 kind = NoopButtonKind.Primary,
                 enabled = !snapshot.loggedToday,
                 onClick = { onMark(true) },
                 modifier = Modifier
                     .weight(1f)
-                    .semantics { contentDescription = "Mark done today" },
+                    .semantics { contentDescription = markDoneCd },
             )
             NoopButton(
-                text = "Skip",
+                text = stringResource(R.string.insights_experiment_skip),
                 leadingIcon = Icons.Filled.Close,
                 kind = NoopButtonKind.Secondary,
                 onClick = { onMark(false) },
                 modifier = Modifier
                     .weight(1f)
-                    .semantics { contentDescription = "Skip today" },
+                    .semantics { contentDescription = skipCd },
             )
             NoopButton(
-                text = "End",
+                text = stringResource(R.string.insights_experiment_end),
                 leadingIcon = Icons.Filled.Stop,
                 kind = NoopButtonKind.Destructive,
                 onClick = onEnd,
-                modifier = Modifier.semantics { contentDescription = "End experiment" },
+                modifier = Modifier.semantics { contentDescription = endCd },
             )
         }
     }
@@ -1170,6 +1223,7 @@ private fun ExperimentBehaviourPicker(
     onSelect: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val pickerCd = stringResource(R.string.insights_experiment_behaviour_cd, selection)
     Box {
         Row(
             modifier = Modifier
@@ -1179,7 +1233,7 @@ private fun ExperimentBehaviourPicker(
                 .border(1.dp, Palette.hairline, RoundedCornerShape(6.dp))
                 .clickable { expanded = true }
                 .padding(horizontal = 12.dp, vertical = 8.dp)
-                .semantics { contentDescription = "Experiment behaviour: $selection" },
+                .semantics { contentDescription = pickerCd },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -1190,7 +1244,7 @@ private fun ExperimentBehaviourPicker(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text("▾", style = NoopType.subhead, color = Palette.textTertiary)
+            Text(stringResource(R.string.insights_dropdown_caret), style = NoopType.subhead, color = Palette.textTertiary)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             candidates.forEach { q ->
@@ -1302,23 +1356,26 @@ private fun experimentConfidence(
 ): ExperimentConfidence {
     val paired = minOf(baselineCount, interventionCount)
     return when {
-        paired >= 10 && compliance >= 0.65 -> ExperimentConfidence("STRONGER SIGNAL", StrandTone.Positive)
-        paired >= 5 -> ExperimentConfidence("EARLY SIGNAL", StrandTone.Accent)
-        else -> ExperimentConfidence("LOW SIGNAL", StrandTone.Warning)
+        paired >= 10 && compliance >= 0.65 -> ExperimentConfidence(ExperimentConfidenceTier.Stronger, StrandTone.Positive)
+        paired >= 5 -> ExperimentConfidence(ExperimentConfidenceTier.Early, StrandTone.Accent)
+        else -> ExperimentConfidence(ExperimentConfidenceTier.Low, StrandTone.Warning)
     }
 }
 
+/** Localized twin of the experiment reading — re-derived in the UI from structured fields,
+ *  reusing the existing reading_* sentence templates (better/worse are whole sentences). */
+@Composable
 private fun experimentReading(s: ExperimentSnapshot): String {
+    val outcomeLabel = insightsOutcomeLabel(s.outcome)
     val delta = s.delta
-        ?: return "Collect a few logged intervention days before reading the effect. " +
-            "Baseline and imported metrics stay in place."
+        ?: return stringResource(R.string.insights_experiment_reading_pending)
     val absStr = formatExperimentDelta(abs(delta), s.outcome, includeSign = false)
     if (abs(delta) < 0.05) {
-        return "${s.outcome.outcomeName} is flat against baseline on logged intervention days."
+        return stringResource(R.string.insights_experiment_reading_flat, outcomeLabel)
     }
     val movedGood = if (s.outcome.higherIsBetter) delta > 0 else delta < 0
-    return "${s.outcome.outcomeName} is $absStr ${if (movedGood) "better" else "worse"} " +
-        "than baseline on days you logged this behaviour."
+    return if (movedGood) stringResource(R.string.insights_experiment_reading_better, outcomeLabel, absStr)
+        else stringResource(R.string.insights_experiment_reading_worse, outcomeLabel, absStr)
 }
 
 private fun experimentDeltaColor(s: ExperimentSnapshot): Color {
@@ -1328,14 +1385,17 @@ private fun experimentDeltaColor(s: ExperimentSnapshot): Color {
     return if (movedGood) Palette.statusPositive else Palette.statusCritical
 }
 
+/** Experiment-delta value. Sign uses the canonical "−" (U+2212); the %/ms/bpm shell is
+ *  localized so German can place its space/decimal separator at the UI. */
+@Composable
 private fun formatExperimentDelta(delta: Double?, outcome: Outcome, includeSign: Boolean = true): String {
-    if (delta == null) return "—"
+    if (delta == null) return stringResource(R.string.insights_dash)
     val prefix = if (!includeSign) "" else if (delta > 0) "+" else if (delta < 0) "−" else ""
     val v = abs(delta).roundToInt()
     return when (outcome) {
-        Outcome.Recovery, Outcome.Sleep -> "$prefix$v%"
-        Outcome.Hrv -> "$prefix$v ms"
-        Outcome.Rhr -> "$prefix$v bpm"
+        Outcome.Recovery, Outcome.Sleep -> stringResource(R.string.insights_experiment_delta_pct, prefix, v)
+        Outcome.Hrv -> stringResource(R.string.insights_experiment_delta_ms, prefix, v)
+        Outcome.Rhr -> stringResource(R.string.insights_experiment_delta_bpm, prefix, v)
     }
 }
 
@@ -1379,12 +1439,15 @@ private fun saveExperimentInt(context: Context, key: String, value: Int) {
 @Composable
 private fun RelationshipsSection(rels: List<Relationship>) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Metric Relationships", overline = "Pearson r")
+        SectionHeader(
+            stringResource(R.string.insights_relationships_title),
+            overline = stringResource(R.string.insights_relationships_overline),
+        )
 
         if (rels.isEmpty()) {
             NoopCard {
                 Text(
-                    "Not enough overlapping history to correlate your metrics yet.",
+                    stringResource(R.string.insights_relationships_empty),
                     style = NoopType.subhead,
                     color = Palette.textTertiary,
                 )
@@ -1409,7 +1472,9 @@ private fun RelationshipsSection(rels: List<Relationship>) {
 @Composable
 private fun RelationshipRow(rel: Relationship) {
     val strength = correlationColor(rel.r)
-    val sentence = relationshipSentence(rel)
+    val sentence = insightsRelationshipSentence(rel)
+    val title = insightsRelationshipTitle(rel.id)
+    val blurb = insightsRelationshipBlurb(rel.id)
 
     Column(
         modifier = Modifier
@@ -1424,7 +1489,7 @@ private fun RelationshipRow(rel: Relationship) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                rel.title,
+                title,
                 style = NoopType.headline,
                 color = Palette.textPrimary,
                 modifier = Modifier.weight(1f),
@@ -1437,7 +1502,8 @@ private fun RelationshipRow(rel: Relationship) {
                 color = strength,
             )
             StatePill(
-                if (rel.significant) "p < 0.05" else "n.s.",
+                if (rel.significant) stringResource(R.string.insights_relationships_significant)
+                else stringResource(R.string.insights_relationships_ns),
                 tone = if (rel.significant) StrandTone.Accent else StrandTone.Neutral,
                 showsDot = false,
             )
@@ -1447,7 +1513,7 @@ private fun RelationshipRow(rel: Relationship) {
         RBar(r = rel.r, color = strength)
 
         Text(sentence, style = NoopType.subhead, color = Palette.textSecondary)
-        Text(rel.blurb, style = NoopType.footnote, color = Palette.textTertiary)
+        Text(blurb, style = NoopType.footnote, color = Palette.textTertiary)
     }
 }
 
@@ -1655,50 +1721,136 @@ private fun pearson(pairs: List<Pair<Double, Double>>): Pair<Double, Int>? {
 private fun significanceThreshold(n: Int): Double =
     if (n < 4) 1.1 else (2.0 / sqrt(n.toDouble())).coerceAtMost(1.0)
 
-// MARK: - Text + colour helpers
+// MARK: - Text + colour helpers (localized render-site resolvers)
 
-private fun effectSentence(e: BehaviorEffect, outcome: Outcome): String {
-    val dir = when {
-        e.delta > 0 -> "higher"
-        e.delta < 0 -> "lower"
-        else -> "no different"
+/** Localized OUTCOME name for sentences/headers (long form, e.g. "Resting HR"). Mirrors
+ *  the Hub's insightsOutcomeLabel — the canonical Outcome.outcomeName stays the persisted/
+ *  comparison key; this only feeds display. */
+@Composable
+private fun insightsOutcomeLabel(outcome: Outcome): String = when (outcome) {
+    Outcome.Recovery -> stringResource(R.string.today_charge)
+    Outcome.Hrv -> stringResource(R.string.today_hrv)
+    Outcome.Sleep -> stringResource(R.string.today_rest)
+    Outcome.Rhr -> stringResource(R.string.today_resting_hr)
+}
+
+/** Localized SHORT pill labels (Charge / HRV / Rest / RHR) for the SegmentedPillControl —
+ *  resolved into a map at this @Composable point so the non-@Composable label lambda can
+ *  look them up (same trick as the Hub's rememberInsightsOutcomeLabels). */
+@Composable
+private fun rememberOutcomePillLabels(): Map<Outcome, String> = Outcome.entries.associateWith {
+    when (it) {
+        Outcome.Recovery -> stringResource(R.string.intelligence_stat_charge)
+        Outcome.Hrv -> stringResource(R.string.intelligence_stat_hrv)
+        Outcome.Sleep -> stringResource(R.string.intelligence_stat_rest)
+        Outcome.Rhr -> stringResource(R.string.intelligence_stat_rhr)
     }
-    val name = outcome.outcomeName.lowercase(Locale.US)
+}
+
+/** Localized twin of effectSentence(): rebuilds the direction word in the current locale
+ *  and fills the German sentence template from the structured BehaviorEffect fields. The
+ *  behaviour name stays user data (not translated); means keep their numeric formatter. */
+@Composable
+private fun insightsEffectSentence(e: BehaviorEffect, outcome: Outcome): String {
+    val name = insightsOutcomeLabel(outcome).lowercase(Locale.US)
+    val behaviour = e.behavior.lowercase(Locale.US)
     if (e.delta == 0.0) {
-        return "On days you logged ${e.behavior.lowercase(Locale.US)}, your $name was no different."
+        return stringResource(R.string.insights_effect_sentence_flat, behaviour, name)
     }
+    val dir = if (e.delta > 0) stringResource(R.string.insights_effect_dir_higher)
+        else stringResource(R.string.insights_effect_dir_lower)
     val withStr = outcome.format(e.meanWith)
     val withoutStr = outcome.format(e.meanWithout)
-    return "On days you logged ${e.behavior.lowercase(Locale.US)}, your $name averaged " +
-        "$withStr — $dir than the $withoutStr on days you didn't."
+    return stringResource(R.string.insights_effect_sentence, behaviour, name, withStr, dir, withoutStr)
 }
 
-private fun effectMagnitudeWord(d: Double): String {
+/** Localized twin of effectMagnitudeWord(). */
+@Composable
+private fun insightsEffectMagnitudeWord(d: Double): String {
     val m = abs(d)
     return when {
-        m < 0.2 -> "negligible"
-        m < 0.5 -> "small"
-        m < 0.8 -> "moderate"
-        else -> "large"
+        m < 0.2 -> stringResource(R.string.insights_magnitude_negligible)
+        m < 0.5 -> stringResource(R.string.insights_magnitude_small)
+        m < 0.8 -> stringResource(R.string.insights_magnitude_moderate)
+        else -> stringResource(R.string.insights_magnitude_large)
     }
 }
 
-private fun strengthWord(r: Double): String {
+/** Localized twin of strengthWord(). */
+@Composable
+private fun insightsStrengthWord(r: Double): String {
     val m = abs(r)
     return when {
-        m < 0.1 -> "No"
-        m < 0.3 -> "A weak"
-        m < 0.5 -> "A moderate"
-        m < 0.7 -> "A strong"
-        else -> "A very strong"
+        m < 0.1 -> stringResource(R.string.insights_strength_none)
+        m < 0.3 -> stringResource(R.string.insights_strength_weak)
+        m < 0.5 -> stringResource(R.string.insights_strength_moderate)
+        m < 0.7 -> stringResource(R.string.insights_strength_strong)
+        else -> stringResource(R.string.insights_strength_very_strong)
     }
 }
 
-private fun relationshipSentence(rel: Relationship): String {
-    val dir = if (rel.r > 0) "positive" else if (rel.r < 0) "negative" else "flat"
-    return "${strengthWord(rel.r)} $dir relationship " +
-        "(r = ${String.format(Locale.US, "%.2f", rel.r)}, n = ${rel.n})."
+/** Localized twin of relationshipSentence(). r/n keep their canonical numeric notation. */
+@Composable
+private fun insightsRelationshipSentence(rel: Relationship): String {
+    val strength = insightsStrengthWord(rel.r)
+    val dir = if (rel.r > 0) stringResource(R.string.insights_rel_dir_positive)
+        else if (rel.r < 0) stringResource(R.string.insights_rel_dir_negative)
+        else stringResource(R.string.insights_rel_dir_flat)
+    return stringResource(
+        R.string.insights_relationship_sentence,
+        strength, dir, String.format(Locale.US, "%.2f", rel.r), rel.n,
+    )
 }
+
+/** Localized curated-relationship title/blurb, keyed on the relationship id (the title/
+ *  blurb on the data shape stay English defaults; the UI shows these). */
+@Composable
+private fun insightsRelationshipTitle(id: String): String = when (id) {
+    "hrv-rec" -> stringResource(R.string.insights_rel_hrv_rec_title)
+    "sleep-rec" -> stringResource(R.string.insights_rel_sleep_rec_title)
+    "rhr-rec" -> stringResource(R.string.insights_rel_rhr_rec_title)
+    "rec-lag" -> stringResource(R.string.insights_rel_rec_lag_title)
+    else -> id
+}
+
+@Composable
+private fun insightsRelationshipBlurb(id: String): String = when (id) {
+    "hrv-rec" -> stringResource(R.string.insights_rel_hrv_rec_blurb)
+    "sleep-rec" -> stringResource(R.string.insights_rel_sleep_rec_blurb)
+    "rhr-rec" -> stringResource(R.string.insights_rel_rhr_rec_blurb)
+    "rec-lag" -> stringResource(R.string.insights_rel_rec_lag_blurb)
+    else -> ""
+}
+
+/** Localized twin of ActivityCost.sentence(): the engine sentence stays canonical English;
+ *  this re-derives it in the current locale from the structured ActivityCost fields,
+ *  mirroring the Hub's insightsMoverSentence pattern. */
+@Composable
+private fun insightsActivityCostSentence(cost: com.noop.analytics.ActivityCost): String {
+    val mag = abs(cost.delta)
+    val points = com.noop.analytics.ActivityCostEngine.roundToIntHalfUp(mag)
+    if (mag < com.noop.analytics.ActivityCostEngine.barelyMovesPoints) {
+        return stringResource(R.string.insights_activity_sentence_barely, cost.n)
+    }
+    val direction = if (cost.delta >= 0) stringResource(R.string.insights_activity_sentence_cost)
+        else stringResource(R.string.insights_activity_sentence_lift)
+    val pointWord = if (points == 1) stringResource(R.string.insights_activity_point_singular)
+        else stringResource(R.string.insights_activity_point_plural)
+    val head = stringResource(R.string.insights_activity_sentence_head, direction, points, pointWord)
+    val days = cost.daysToBaseline
+    return if (days != null) {
+        val dayWord = if (days == 1) stringResource(R.string.insights_day_singular)
+            else stringResource(R.string.insights_day_plural)
+        stringResource(R.string.insights_activity_sentence_with_bounce, head, days, dayWord, cost.n)
+    } else {
+        stringResource(R.string.insights_activity_sentence_no_bounce, head, cost.n)
+    }
+}
+
+/** One-decimal value with a German comma at the UI (e.g. Cohen's-d delta). Logic/persisted
+ *  values are unaffected — this is display only. */
+private fun germanDecimal1(x: Double): String =
+    String.format(Locale.US, "%.1f", x).replace('.', ',')
 
 /** Tint a correlation by strength, keyed on the recovery gradient so strong positive
  *  reads mint and strong negative reads red. Maps r∈[-1,1] → 0…1 of the scale. */

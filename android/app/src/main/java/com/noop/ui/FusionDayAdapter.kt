@@ -6,6 +6,7 @@ import com.noop.analytics.FusionResolver
 import com.noop.analytics.FusionSource
 import com.noop.data.DailyMetric
 import com.noop.data.WhoopRepository
+import com.noop.R
 
 /**
  * FusionDayAdapter — the small repository adapter (v5 Wave 3) that assembles a day's [FusedRecord] for
@@ -22,18 +23,18 @@ import com.noop.data.WhoopRepository
 object FusionDayAdapter {
 
     /** The fusion metrics shown on the record, in display order, each with its label + resolver key. */
-    private data class MetricSpec(val key: String, val label: String)
+    private data class MetricSpec(val key: String, val label: String, @androidx.annotation.StringRes val labelRes: Int)
 
     private val METRICS: List<MetricSpec> = listOf(
-        MetricSpec("rhr", "Resting HR"),
-        MetricSpec("hrv", "HRV"),
-        MetricSpec("skin_temp", "Skin temperature"),
-        MetricSpec("spo2", "Blood O₂"),
-        MetricSpec("steps", "Steps"),
-        MetricSpec("active_kcal", "Active energy"),
-        MetricSpec("sleep_total_min", "Asleep time"),
-        MetricSpec("sleep_deep_min", "Deep sleep"),
-        MetricSpec("sleep_rem_min", "REM sleep"),
+        MetricSpec("rhr", "Resting HR", R.string.fused_metric_rhr),
+        MetricSpec("hrv", "HRV", R.string.fused_metric_hrv),
+        MetricSpec("skin_temp", "Skin temperature", R.string.fused_metric_skin_temp),
+        MetricSpec("spo2", "Blood O₂", R.string.fused_metric_spo2),
+        MetricSpec("steps", "Steps", R.string.fused_metric_steps),
+        MetricSpec("active_kcal", "Active energy", R.string.fused_metric_active_energy),
+        MetricSpec("sleep_total_min", "Asleep time", R.string.fused_metric_asleep),
+        MetricSpec("sleep_deep_min", "Deep sleep", R.string.fused_metric_deep),
+        MetricSpec("sleep_rem_min", "REM sleep", R.string.fused_metric_rem),
     )
 
     /** Each fusion source paired with the deviceId/source string its daily rows are stored under. */
@@ -65,7 +66,7 @@ object FusionDayAdapter {
                 row?.let { WhoopRepository.dailyColumn(spec.key, it)?.let { v -> FusionInput(source, v) } }
             }
             val point = FusionResolver.resolve(spec.key, inputs) ?: continue
-            rows.add(FusedRow(point = point, label = spec.label))
+            rows.add(FusedRow(point = point, label = spec.label, labelRes = spec.labelRes))
         }
 
         // Day owner: the single device that owns the day's displayed scores (lowest priority with data).

@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,28 +46,37 @@ import androidx.compose.ui.unit.dp
 // FIRMWARE broadcast flag (whoop_live_hr_in_adv_ind_pkt), because the 4.0 firmware has no such config.
 // This screen draws that line honestly, and reassures a 4.0 owner their strap is fully supported.
 
-/** One capability row: a feature, and whether each strap can do it (Yes / No / a short qualifier). */
+/** One capability row: a feature, and whether each strap can do it (Yes / No / a short qualifier).
+ *  The English [feature]/[note] stay as the data source; the string keys are attached as *Res and
+ *  resolved at the render site via [capabilityFeature] / [capabilityNote] (0 = no key, show English). */
 private data class CapabilityRow(
     val feature: String,
     val whoop4: Support,
     val whoop5: Support,
     val note: String? = null,
+    @androidx.annotation.StringRes val featureRes: Int = 0,
+    @androidx.annotation.StringRes val noteRes: Int = 0,
 )
 
 /** Tri-state support for the comparison table — honest, never overstated. */
 private enum class Support { YES, NO, PARTIAL }
 
+// i18n: the English feature/note stay as the data source; each carries its string key as *Res,
+// resolved at the render site (CapabilityTableCard) via capabilityFeature / capabilityNote. The Buzz
+// row has no note (and no _note key), so it shows none.
 private val CAPABILITIES: List<CapabilityRow> = listOf(
     CapabilityRow(
         "Live heart rate",
         Support.YES, Support.YES,
         "Both stream live HR to NOOP over Bluetooth.",
+        featureRes = R.string.whoop_compar_cap_live_hr, noteRes = R.string.whoop_compar_cap_live_hr_note,
     ),
     CapabilityRow(
         "Sleep, recovery & strain history",
         Support.YES, Support.PARTIAL,
         "The 4.0's history is fully decoded. On a 5/MG, history decoding is experimental — live HR works, " +
             "deeper history is still being mapped.",
+        featureRes = R.string.whoop_compar_cap_history, noteRes = R.string.whoop_compar_cap_history_note,
     ),
     CapabilityRow(
         "NOOP re-broadcasts your HR (gym / Zwift / Garmin)",
@@ -72,29 +84,46 @@ private val CAPABILITIES: List<CapabilityRow> = listOf(
         "Data Sources → \"Broadcast heart rate\" turns your PHONE into a standard BLE HR sensor using " +
             "whatever HR NOOP is reading — so this works on a 4.0 too. It's local Bluetooth; nothing leaves " +
             "your phone.",
+        featureRes = R.string.whoop_compar_cap_rebroadcast, noteRes = R.string.whoop_compar_cap_rebroadcast_note,
     ),
     CapabilityRow(
         "Strap broadcasts its own HR (firmware flag)",
         Support.NO, Support.YES,
         "Making the STRAP itself advertise HR (the whoop_live_hr_in_adv_ind_pkt config) only exists on " +
             "5/MG firmware. A 4.0 can't do this — but the phone re-broadcast above covers the same use.",
+        featureRes = R.string.whoop_compar_cap_firmware, noteRes = R.string.whoop_compar_cap_firmware_note,
     ),
     CapabilityRow(
         "Steps",
         Support.PARTIAL, Support.YES,
         "A 4.0 sends no step count, so NOOP ESTIMATES steps from motion, calibrated to your phone " +
             "(Settings → Profile → Steps estimate). A 5/MG reports a motion counter NOOP reads directly.",
+        featureRes = R.string.whoop_compar_cap_steps, noteRes = R.string.whoop_compar_cap_steps_note,
     ),
     CapabilityRow(
         "Rename the strap's Bluetooth name",
         Support.YES, Support.NO,
         "Renaming works over the 4.0's firmware command; the 5/MG path isn't supported.",
+        featureRes = R.string.whoop_compar_cap_rename, noteRes = R.string.whoop_compar_cap_rename_note,
     ),
     CapabilityRow(
         "Buzz the strap (alarms, haptics, time)",
         Support.YES, Support.YES,
+        featureRes = R.string.whoop_compar_cap_buzz,
     ),
 )
+
+/** Localized capability feature label — its key when present, else the English data value. */
+@Composable
+private fun capabilityFeature(cap: CapabilityRow): String =
+    if (cap.featureRes != 0) stringResource(cap.featureRes) else cap.feature
+
+/** Localized capability note, or null when the row carries none. */
+@Composable
+private fun capabilityNote(cap: CapabilityRow): String? = when {
+    cap.noteRes != 0 -> stringResource(cap.noteRes)
+    else -> cap.note
+}
 
 @Composable
 fun WhoopModelComparisonScreen(onClose: () -> Unit) {
@@ -125,11 +154,9 @@ fun WhoopModelComparisonScreen(onClose: () -> Unit) {
 private fun IntroCard() {
     NoopCard(padding = 20.dp, tint = Palette.accent) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Both straps are supported", style = NoopType.headline, color = Palette.textPrimary)
+            Text(stringResource(R.string.whoop_model_compar_both_straps_are_supported), style = NoopType.headline, color = Palette.textPrimary)
             Text(
-                "NOOP pairs with the WHOOP 4.0 and the WHOOP 5.0/MG. They share most of what matters — live " +
-                    "heart rate, your scores, buzzing the strap — but a few firmware features differ. Here's " +
-                    "what each can do, and why.",
+                stringResource(R.string.whoop_model_compar_noop_pairs_with_the_whoop_4),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -141,28 +168,29 @@ private fun IntroCard() {
 private fun CapabilityTableCard() {
     NoopCard(padding = 20.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Overline("Feature by strap")
+            Overline(stringResource(R.string.whoop_compar_feature_overline))
             // Column header.
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Feature", style = NoopType.caption, color = Palette.textTertiary, modifier = Modifier.weight(1f))
-                Text("4.0", style = NoopType.caption, color = Palette.textTertiary, textAlign = TextAlign.Center, modifier = Modifier.width(48.dp))
-                Text("5/MG", style = NoopType.caption, color = Palette.textTertiary, textAlign = TextAlign.Center, modifier = Modifier.width(48.dp))
+                Text(stringResource(R.string.whoop_model_compar_feature), style = NoopType.caption, color = Palette.textTertiary, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.whoop_compar_col_40), style = NoopType.caption, color = Palette.textTertiary, textAlign = TextAlign.Center, modifier = Modifier.width(48.dp))
+                Text(stringResource(R.string.whoop_model_compar_5_mg), style = NoopType.caption, color = Palette.textTertiary, textAlign = TextAlign.Center, modifier = Modifier.width(48.dp))
             }
             CAPABILITIES.forEachIndexed { idx, cap ->
                 if (idx > 0) Hairline()
+                val feature = capabilityFeature(cap)
+                val rowCd = stringResource(R.string.whoop_compar_row_cd, feature, cap.whoop4.spoken(), cap.whoop5.spoken())
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth().semantics {
-                            contentDescription =
-                                "${cap.feature}. WHOOP 4.0: ${cap.whoop4.spoken}. WHOOP 5 or MG: ${cap.whoop5.spoken}."
+                            contentDescription = rowCd
                         },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(cap.feature, style = NoopType.body, color = Palette.textPrimary, modifier = Modifier.weight(1f))
+                        Text(feature, style = NoopType.body, color = Palette.textPrimary, modifier = Modifier.weight(1f))
                         SupportCell(cap.whoop4)
                         SupportCell(cap.whoop5)
                     }
-                    cap.note?.let {
+                    capabilityNote(cap)?.let {
                         Text(it, style = NoopType.footnote, color = Palette.textTertiary)
                     }
                 }
@@ -175,9 +203,9 @@ private fun CapabilityTableCard() {
 private fun SupportCell(support: Support) {
     Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
         when (support) {
-            Support.YES -> SupportGlyph(Icons.Filled.Check, Palette.statusPositive, "Yes")
-            Support.NO -> SupportGlyph(Icons.Filled.Close, Palette.textTertiary, "No")
-            Support.PARTIAL -> SupportGlyph(Icons.Filled.Remove, Palette.statusWarning, "Partly")
+            Support.YES -> SupportGlyph(Icons.Filled.Check, Palette.statusPositive, stringResource(R.string.whoop_compar_support_yes))
+            Support.NO -> SupportGlyph(Icons.Filled.Close, Palette.textTertiary, stringResource(R.string.whoop_compar_support_no))
+            Support.PARTIAL -> SupportGlyph(Icons.Filled.Remove, Palette.statusWarning, stringResource(R.string.whoop_compar_support_partly))
         }
     }
 }
@@ -191,12 +219,9 @@ private fun SupportGlyph(icon: ImageVector, tint: Color, label: String) {
 private fun ReassuranceCard() {
     NoopCard(padding = 20.dp, tint = Palette.metricCyan) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("On a WHOOP 4.0?", style = NoopType.headline, color = Palette.textPrimary)
+            Text(stringResource(R.string.whoop_model_compar_on_a_whoop_4_0), style = NoopType.headline, color = Palette.textPrimary)
             Text(
-                "You're not missing the broadcast feature. To share your heart rate with a gym machine, " +
-                    "Zwift, Peloton or a Garmin, open Data Sources and turn on \"Broadcast heart rate\" — " +
-                    "your phone becomes a standard Bluetooth HR sensor using your strap's live reading. The " +
-                    "firmware-only flag a 5/MG has just does the same job from the strap instead of the phone.",
+                stringResource(R.string.whoop_model_compar_you_re_not_missing_the_broadcast),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -214,12 +239,12 @@ private fun Header(onClose: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Overline("Your strap", color = Palette.textTertiary)
-            Text("4.0 vs 5.0/MG", style = NoopType.display(26f), color = Palette.textPrimary)
-            Text("What each can read, and why", style = NoopType.caption, color = Palette.textSecondary)
+            Overline(stringResource(R.string.whoop_compar_your_strap_overline), color = Palette.textTertiary)
+            Text(stringResource(R.string.whoop_model_compar_4_0_vs_5_0), style = NoopType.display(26f), color = Palette.textPrimary)
+            Text(stringResource(R.string.whoop_model_compar_what_each_can_read_and_why), style = NoopType.caption, color = Palette.textSecondary)
         }
         IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Filled.Close, contentDescription = "Close", tint = Palette.textTertiary, modifier = Modifier.size(22.dp))
+            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.adddevice_close), tint = Palette.textTertiary, modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -231,7 +256,7 @@ private fun Footer(onClose: () -> Unit) {
             onClick = onClose,
             colors = ButtonDefaults.buttonColors(containerColor = Palette.accent, contentColor = Palette.surfaceBase),
         ) {
-            Text("Done", modifier = Modifier.padding(horizontal = 24.dp))
+            Text(stringResource(R.string.today_done), modifier = Modifier.padding(horizontal = 24.dp))
         }
     }
 }
@@ -242,9 +267,9 @@ private fun Hairline() {
 }
 
 /** Spoken support label for the row's accessibility description. */
-private val Support.spoken: String
-    get() = when (this) {
-        Support.YES -> "yes"
-        Support.NO -> "no"
-        Support.PARTIAL -> "partly"
-    }
+@Composable
+private fun Support.spoken(): String = when (this) {
+    Support.YES -> stringResource(R.string.whoop_compar_spoken_yes)
+    Support.NO -> stringResource(R.string.whoop_compar_spoken_no)
+    Support.PARTIAL -> stringResource(R.string.whoop_compar_spoken_partly)
+}

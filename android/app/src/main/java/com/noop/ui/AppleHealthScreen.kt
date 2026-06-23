@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +69,32 @@ private enum class AppleRange(val days: Int?, val label: String, val caption: St
     val widening: List<AppleRange>
         get() = entries.dropWhile { it != this }
 }
+
+/** Localised "ALL TIME / 90 DAYS …" caption (the enum's [AppleRange.caption] stays the English identity). */
+@Composable
+private fun rangeCaption(range: AppleRange): String = stringResource(
+    when (range) {
+        AppleRange.Week -> R.string.applehealth_range_caption_week
+        AppleRange.Month -> R.string.applehealth_range_caption_month
+        AppleRange.Quarter -> R.string.applehealth_range_caption_quarter
+        AppleRange.Half -> R.string.applehealth_range_caption_half
+        AppleRange.Year -> R.string.applehealth_range_caption_year
+        AppleRange.All -> R.string.applehealth_range_caption_all
+    },
+)
+
+/** Localised window name ("3 months / all history …") used in the sparse-aware captions. */
+@Composable
+private fun rangeWindowName(range: AppleRange): String = stringResource(
+    when (range) {
+        AppleRange.Week -> R.string.applehealth_window_week
+        AppleRange.Month -> R.string.applehealth_window_month
+        AppleRange.Quarter -> R.string.applehealth_window_quarter
+        AppleRange.Half -> R.string.applehealth_window_half
+        AppleRange.Year -> R.string.applehealth_window_year
+        AppleRange.All -> R.string.applehealth_window_all
+    },
+)
 
 // MARK: - A loaded series point (day string + value), oldest first.
 
@@ -162,7 +191,7 @@ fun AppleHealthScreen(vm: AppViewModel) {
     // so only on-screen sections compose + are accessibility-walked on scroll (this data view is the long,
     // chart-heavy one). The loading/empty branches stay single items. Order + spacing are unchanged
     // (LazyColumn reproduces the eager `spacedBy(20.dp)` between the six sections).
-    LazyScreenScaffold(title = "Apple Health", subtitle = subtitle) {
+    LazyScreenScaffold(title = stringResource(R.string.applehealth_title), subtitle = subtitle) {
         when {
             !loaded -> item { LoadingCard() }
             !data.hasAnyData -> item { EmptyState() }
@@ -181,20 +210,21 @@ fun AppleHealthScreen(vm: AppViewModel) {
 // MARK: - Header span + range control
 
 /** Header subtitle reflects the windowed (visible) per-day span of the steps series. */
+@Composable
 private fun spanSubtitle(loaded: Boolean, data: AppleData, range: AppleRange): String {
     if (!loaded) {
-        return "Steps, heart, sleep, body composition and VO₂ max — synced from the desktop app."
+        return stringResource(R.string.applehealth_header_synced)
     }
     // Use steps as the canonical per-day series for the span readout.
     val rows = resolve(data.raw("steps"), range).rows
     if (rows.isEmpty()) {
-        return "Steps, heart, sleep, body composition and VO₂ max — synced from the desktop app."
+        return stringResource(R.string.applehealth_header_synced)
     }
     val lo = rows.first().day
     val hi = rows.last().day
     val span = if (lo == hi) lo else "$lo → $hi"
-    val unit = if (rows.size == 1) "day" else "days"
-    return "${rows.size} $unit · $span"
+    val unit = if (rows.size == 1) stringResource(R.string.applehealth_unit_day) else stringResource(R.string.applehealth_unit_days)
+    return stringResource(R.string.applehealth_span_readout, rows.size, unit, span)
 }
 
 @Composable
@@ -204,20 +234,24 @@ private fun RangeControl(data: AppleData, range: AppleRange, onSelect: (AppleRan
     val stepsRows = resolve(data.raw("steps"), range).rows
     val anyWidened = data.series.any { (_, s) -> s.isNotEmpty() && resolve(s, range).fellBack }
     val n = stepsRows.size
-    val unit = if (n == 1) "day" else "days"
-    val base = "$n $unit · ${range.windowName}"
-    val caption = if (anyWidened) "$base · some sparse series widened" else base
+    val unit = if (n == 1) stringResource(R.string.applehealth_unit_day) else stringResource(R.string.applehealth_unit_days)
+    val caption = if (anyWidened) {
+        stringResource(R.string.applehealth_range_caption_widened, n, unit, rangeWindowName(range))
+    } else {
+        stringResource(R.string.applehealth_range_base_caption, n, unit, rangeWindowName(range))
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            val rangeLabels = rememberRangeShortLabels(AppleRange.entries.toList()) { it.label }
             SegmentedPillControl(
                 items = AppleRange.entries.toList(),
                 selection = range,
-                label = { it.label },
+                label = { rangeLabels.getValue(it) },
                 onSelect = onSelect,
             )
             Spacer(Modifier.weight(1f))
-            Overline(range.caption, color = Palette.textTertiary)
+            Overline(rangeCaption(range), color = Palette.textTertiary)
         }
         Text(
             caption,
@@ -235,7 +269,7 @@ private fun LoadingCard() {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ConnectionDot(tone = StrandTone.Accent, pulsing = true)
             Text(
-                "Reading your Apple Health history…",
+                stringResource(R.string.applehealth_loading),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -246,9 +280,8 @@ private fun LoadingCard() {
 @Composable
 private fun EmptyState() {
     DataPendingNote(
-        title = "Nothing imported yet",
-        body = "Nothing imported yet. On an iPhone: Health app, tap your photo, Export " +
-            "All Health Data, then import the .zip here in Data Sources.",
+        title = stringResource(R.string.applehealth_empty_title),
+        body = stringResource(R.string.applehealth_empty_body),
     )
 }
 
@@ -264,31 +297,31 @@ private fun TileGrid(data: AppleData, range: AppleRange) {
     // Two columns of equal-width fixed-height tiles, mirroring the macOS adaptive grid.
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         TileRow {
-            MetricTile(Modifier.weight(1f), data, range, "steps", "Steps", Palette.metricCyan) { intString(it) }
-            MetricTile(Modifier.weight(1f), data, range, "resting_hr", "Resting HR", Palette.metricRose, "bpm") {
+            MetricTile(Modifier.weight(1f), data, range, "steps", stringResource(R.string.applehealth_steps), Palette.metricCyan) { intString(it) }
+            MetricTile(Modifier.weight(1f), data, range, "resting_hr", stringResource(R.string.applehealth_resting_hr), Palette.metricRose, "bpm") {
                 "${it.roundToInt()}"
             }
         }
         TileRow {
-            MetricTile(Modifier.weight(1f), data, range, "hrv", "HRV", Palette.metricPurple, "ms") { "${it.roundToInt()}" }
-            MetricTile(Modifier.weight(1f), data, range, "vo2max", "VO₂ Max", Palette.accent, "ml/kg") {
+            MetricTile(Modifier.weight(1f), data, range, "hrv", stringResource(R.string.applehealth_hrv), Palette.metricPurple, "ms") { "${it.roundToInt()}" }
+            MetricTile(Modifier.weight(1f), data, range, "vo2max", stringResource(R.string.applehealth_vo2max), Palette.accent, "ml/kg") {
                 String.format(Locale.US, "%.1f", it)
             }
         }
         TileRow {
-            MetricTile(Modifier.weight(1f), data, range, "weight", "Weight", Palette.accent) {
+            MetricTile(Modifier.weight(1f), data, range, "weight", stringResource(R.string.applehealth_weight), Palette.accent) {
                 UnitFormatter.massFromKilograms(it, unitSystem)
             }
-            MetricTile(Modifier.weight(1f), data, range, "body_fat", "Body Fat", Palette.metricAmber, "%") {
+            MetricTile(Modifier.weight(1f), data, range, "body_fat", stringResource(R.string.applehealth_body_fat), Palette.metricAmber, "%") {
                 String.format(Locale.US, "%.1f", it)
             }
         }
         TileRow {
-            MetricTile(Modifier.weight(1f), data, range, "lean_mass", "Lean Mass", Palette.accent) {
+            MetricTile(Modifier.weight(1f), data, range, "lean_mass", stringResource(R.string.applehealth_lean_mass), Palette.accent) {
                 UnitFormatter.massFromKilograms(it, unitSystem)
             }
             MetricTile(
-                Modifier.weight(1f), data, range, "asleep_min", "Asleep avg", Palette.metricPurple,
+                Modifier.weight(1f), data, range, "asleep_min", stringResource(R.string.applehealth_asleep_avg), Palette.metricPurple,
                 aggregate = Aggregate.Mean,
             ) { durationString(it) }
         }
@@ -331,12 +364,12 @@ private fun MetricTile(
         aggregate == Aggregate.Latest -> {
             val v = values.last()
             value = withUnit(fmt(v), unit)
-            caption = rows.lastOrNull()?.let { "as of ${it.day}" }
+            caption = rows.lastOrNull()?.let { stringResource(R.string.applehealth_tile_as_of, it.day) }
         }
         else -> {
             val m = values.average()
             value = withUnit(fmt(m), unit)
-            caption = "avg · ${values.size}d"
+            caption = stringResource(R.string.applehealth_tile_avg_days, values.size)
         }
     }
 
@@ -353,17 +386,17 @@ private fun MetricTile(
 
 @Composable
 private fun HeartSection(data: AppleData, range: AppleRange) {
-    ChartSection("Heart & Vitals", "Cardiac", range) {
-        MetricChartCard(data, range, "resting_hr", "Resting heart rate", Palette.metricRose) {
+    ChartSection(stringResource(R.string.applehealth_heart_section), stringResource(R.string.applehealth_heart_overline), range) {
+        MetricChartCard(data, range, "resting_hr", stringResource(R.string.applehealth_resting_heart_rate), Palette.metricRose) {
             "${it.roundToInt()} bpm"
         }
-        MetricChartCard(data, range, "hrv", "Heart rate variability", Palette.metricPurple) {
+        MetricChartCard(data, range, "hrv", stringResource(R.string.applehealth_heart_rate_variability), Palette.metricPurple) {
             "${it.roundToInt()} ms"
         }
-        MetricChartCard(data, range, "spo2", "Blood oxygen", Palette.metricCyan) {
+        MetricChartCard(data, range, "spo2", stringResource(R.string.applehealth_blood_oxygen), Palette.metricCyan) {
             String.format(Locale.US, "%.1f%%", it)
         }
-        MetricChartCard(data, range, "resp_rate", "Respiratory rate", Palette.accent) {
+        MetricChartCard(data, range, "resp_rate", stringResource(R.string.applehealth_respiratory_rate), Palette.accent) {
             String.format(Locale.US, "%.1f rpm", it)
         }
     }
@@ -371,9 +404,9 @@ private fun HeartSection(data: AppleData, range: AppleRange) {
 
 @Composable
 private fun ActivitySection(data: AppleData, range: AppleRange) {
-    ChartSection("Activity & Energy", "Movement", range) {
-        MetricChartCard(data, range, "steps", "Steps", Palette.metricCyan) { intString(it) }
-        MetricChartCard(data, range, "active_kcal", "Active energy", Palette.metricAmber) {
+    ChartSection(stringResource(R.string.applehealth_activity_section), stringResource(R.string.applehealth_activity_overline), range) {
+        MetricChartCard(data, range, "steps", stringResource(R.string.applehealth_steps), Palette.metricCyan) { intString(it) }
+        MetricChartCard(data, range, "active_kcal", stringResource(R.string.applehealth_active_energy), Palette.metricAmber) {
             "${intString(it)} kcal"
         }
     }
@@ -383,17 +416,17 @@ private fun ActivitySection(data: AppleData, range: AppleRange) {
 private fun BodySection(data: AppleData, range: AppleRange) {
     // Weight + lean mass (stored kg) re-label to lb under the imperial preference.
     val unitSystem = UnitPrefs.system(LocalContext.current)
-    ChartSection("Body Composition", "Slow threads", range) {
-        MetricChartCard(data, range, "weight", "Weight", Palette.accent) {
+    ChartSection(stringResource(R.string.applehealth_body_section), stringResource(R.string.applehealth_body_overline), range) {
+        MetricChartCard(data, range, "weight", stringResource(R.string.applehealth_weight), Palette.accent) {
             UnitFormatter.massFromKilograms(it, unitSystem)
         }
-        MetricChartCard(data, range, "body_fat", "Body fat", Palette.metricAmber) {
+        MetricChartCard(data, range, "body_fat", stringResource(R.string.applehealth_body_fat_chart), Palette.metricAmber) {
             String.format(Locale.US, "%.1f%%", it)
         }
-        MetricChartCard(data, range, "lean_mass", "Lean body mass", Palette.accent) {
+        MetricChartCard(data, range, "lean_mass", stringResource(R.string.applehealth_lean_body_mass), Palette.accent) {
             UnitFormatter.massFromKilograms(it, unitSystem)
         }
-        MetricChartCard(data, range, "bmi", "BMI", Palette.metricPurple) {
+        MetricChartCard(data, range, "bmi", stringResource(R.string.applehealth_bmi), Palette.metricPurple) {
             String.format(Locale.US, "%.1f", it)
         }
     }
@@ -401,8 +434,8 @@ private fun BodySection(data: AppleData, range: AppleRange) {
 
 @Composable
 private fun SleepSection(data: AppleData, range: AppleRange) {
-    ChartSection("Sleep", "Rest", range) {
-        MetricChartCard(data, range, "asleep_min", "Asleep", Palette.metricPurple) { durationString(it) }
+    ChartSection(stringResource(R.string.applehealth_sleep_section), stringResource(R.string.applehealth_sleep_overline), range) {
+        MetricChartCard(data, range, "asleep_min", stringResource(R.string.applehealth_asleep), Palette.metricPurple) { durationString(it) }
     }
 }
 
@@ -414,7 +447,7 @@ private fun ChartSection(
     content: @Composable () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader(title, overline = overline, trailing = range.caption)
+        SectionHeader(title, overline = overline, trailing = rangeCaption(range))
         content()
     }
 }
@@ -441,10 +474,11 @@ private fun MetricChartCard(
     val mean = if (n > 0) values.average() else null
     val trailing = mean?.let { fmt(it) } ?: "—"
 
-    val subtitle = run {
-        val unit = if (n == 1) "reading" else "readings"
-        if (resolved.fellBack) "$n $unit · sparse — widened to ${resolved.effective.windowName}"
-        else "$n $unit · ${range.windowName}"
+    val unit = if (n == 1) stringResource(R.string.applehealth_unit_reading) else stringResource(R.string.applehealth_unit_readings)
+    val subtitle = if (resolved.fellBack) {
+        stringResource(R.string.applehealth_chart_subtitle_widened, n, unit, rangeWindowName(resolved.effective))
+    } else {
+        stringResource(R.string.applehealth_chart_subtitle, n, unit, rangeWindowName(range))
     }
 
     NoopCard(tint = accent) {
@@ -475,13 +509,18 @@ private fun MetricChartCard(
             ChartFooterRow(
                 items = if (n > 0) {
                     listOf(
-                        "Avg" to fmt(values.average()),
-                        "Min" to fmt(values.min()),
-                        "Max" to fmt(values.max()),
-                        "Points" to "$n",
+                        stringResource(R.string.applehealth_avg) to fmt(values.average()),
+                        stringResource(R.string.applehealth_min) to fmt(values.min()),
+                        stringResource(R.string.applehealth_max) to fmt(values.max()),
+                        stringResource(R.string.applehealth_points) to "$n",
                     )
                 } else {
-                    listOf("Avg" to "—", "Min" to "—", "Max" to "—", "Points" to "0")
+                    listOf(
+                        stringResource(R.string.applehealth_avg) to "—",
+                        stringResource(R.string.applehealth_min) to "—",
+                        stringResource(R.string.applehealth_max) to "—",
+                        stringResource(R.string.applehealth_points) to "0",
+                    )
                 },
             )
         }
@@ -496,7 +535,7 @@ private fun SinglePoint(value: Double, accent: Color, fmt: (Double) -> String) {
         contentAlignment = Alignment.CenterStart,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Overline("Latest reading")
+            Overline(stringResource(R.string.applehealth_latest_reading))
             Text(fmt(value), style = NoopType.number(34f), color = accent)
         }
     }
@@ -508,7 +547,7 @@ private fun EmptyChart() {
         modifier = Modifier.fillMaxWidth().height(Metrics.chartHeight),
         contentAlignment = Alignment.Center,
     ) {
-        Text("No readings recorded.", style = NoopType.subhead, color = Palette.textTertiary)
+        Text(stringResource(R.string.applehealth_no_readings), style = NoopType.subhead, color = Palette.textTertiary)
     }
 }
 

@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import android.app.DatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -145,26 +148,26 @@ fun MarkerEditorScreen(
 
     NoopBottomSheet(onDismiss = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
-            Text("Add a reading", style = NoopType.title2, color = Palette.textPrimary)
+            Text(stringResource(R.string.marker_editor_add_a_reading), style = NoopType.title2, color = Palette.textPrimary)
             Text(
-                "Type in a number from your own report. It stays on this phone.",
+                stringResource(R.string.marker_editor_type_in_a_number_from),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
 
             // --- Marker picker ---
-            SectionHeader("Marker", overline = "what are you logging?")
+            SectionHeader(stringResource(R.string.marker_editor_marker), overline = stringResource(R.string.marker_editor_marker_overline))
             NoopCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when {
                         addingCustom -> {
-                            EditorField("Name") {
-                                EditorTextField(customName, { customName = it }, "e.g. Magnesium")
+                            EditorField(stringResource(R.string.marker_editor_name)) {
+                                EditorTextField(customName, { customName = it }, stringResource(R.string.marker_editor_name_placeholder))
                             }
-                            EditorField("Unit") {
-                                EditorTextField(customUnit, { customUnit = it }, "e.g. mmol/L")
+                            EditorField(stringResource(R.string.marker_editor_unit)) {
+                                EditorTextField(customUnit, { customUnit = it }, stringResource(R.string.marker_editor_unit_placeholder))
                             }
-                            LinkText("Back to the marker list") { addingCustom = false }
+                            LinkText(stringResource(R.string.marker_editor_back_to_the_marker_list)) { addingCustom = false }
                         }
                         selection != null -> {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -172,25 +175,26 @@ fun MarkerEditorScreen(
                                     Text(selection!!.displayName, style = NoopType.headline, color = Palette.textPrimary)
                                     Text(selection!!.category.displayName, style = NoopType.footnote, color = Palette.textTertiary)
                                 }
-                                LinkText("Change") {
+                                LinkText(stringResource(R.string.insights_experiment_measure_change)) {
                                     selection = null; valueText = ""; diastolicText = ""; unitChoice = 0; search = ""
                                 }
                             }
                         }
                         else -> {
+                            val searchMarkersCd = stringResource(R.string.marker_editor_cd_search_markers)
                             OutlinedTextField(
                                 value = search,
                                 onValueChange = { search = it },
-                                placeholder = { Text("Search markers (e.g. LDL, ferritin)", style = NoopType.body, color = Palette.textTertiary) },
+                                placeholder = { Text(stringResource(R.string.marker_editor_search_markers_e_g_ldl), style = NoopType.body, color = Palette.textTertiary) },
                                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Palette.textTertiary) },
                                 singleLine = true,
                                 colors = editorFieldColors(),
-                                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search markers" },
+                                modifier = Modifier.fillMaxWidth().semantics { contentDescription = searchMarkersCd },
                             )
                             CatalogList(search) { def ->
                                 selection = def; unitChoice = 0
                             }
-                            LinkText("+ Add a custom marker") { addingCustom = true }
+                            LinkText(stringResource(R.string.marker_editor_add_a_custom_marker)) { addingCustom = true }
                         }
                     }
                 }
@@ -198,25 +202,25 @@ fun MarkerEditorScreen(
 
             // --- Reading inputs ---
             if (selection != null || addingCustom) {
-                SectionHeader("Reading", overline = "your number, date and any note")
+                SectionHeader(stringResource(R.string.marker_editor_reading), overline = stringResource(R.string.marker_editor_reading_overline))
                 NoopCard {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         if (isBloodPressure) {
                             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                EditorField("Systolic", modifier = Modifier.weight(1f)) {
-                                    NumberBox(valueText, { valueText = it }, "e.g. 120", "mmHg")
+                                EditorField(stringResource(R.string.marker_editor_systolic), modifier = Modifier.weight(1f)) {
+                                    NumberBox(valueText, { valueText = it }, stringResource(R.string.marker_editor_bp_sys_placeholder), "mmHg")
                                 }
-                                EditorField("Diastolic", modifier = Modifier.weight(1f)) {
-                                    NumberBox(diastolicText, { diastolicText = it }, "e.g. 80", "mmHg")
+                                EditorField(stringResource(R.string.marker_editor_diastolic), modifier = Modifier.weight(1f)) {
+                                    NumberBox(diastolicText, { diastolicText = it }, stringResource(R.string.marker_editor_bp_dia_placeholder), "mmHg")
                                 }
                             }
                             Text(
-                                "Entered together; stored as two markers so each lines up cleanly against your signals.",
+                                stringResource(R.string.marker_editor_entered_together_stored_as_two),
                                 style = NoopType.footnote,
                                 color = Palette.textTertiary,
                             )
                         } else {
-                            EditorField("Value") {
+                            EditorField(stringResource(R.string.marker_editor_value)) {
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     if (unitOptions.size > 1) {
                                         SegmentedPillControl(
@@ -226,10 +230,10 @@ fun MarkerEditorScreen(
                                             onSelect = { unitChoice = it },
                                         )
                                     }
-                                    NumberBox(valueText, { valueText = it }, "e.g. 3.1", activeUnit)
+                                    NumberBox(valueText, { valueText = it }, stringResource(R.string.marker_editor_value_placeholder), activeUnit)
                                     if (unitOptions.size > 1 && activeUnit != canonicalUnit) {
                                         Text(
-                                            "Stored as $canonicalUnit.",
+                                            stringResource(R.string.marker_editor_stored_as, canonicalUnit),
                                             style = NoopType.footnote,
                                             color = Palette.textTertiary,
                                         )
@@ -237,17 +241,17 @@ fun MarkerEditorScreen(
                                 }
                             }
                         }
-                        EditorField("Date taken") {
+                        EditorField(stringResource(R.string.marker_editor_date_taken)) {
                             DateRow(takenAtMillis) { picked -> takenAtMillis = picked }
                         }
-                        EditorField("Note (optional)") {
-                            EditorTextField(note, { note = it }, "e.g. fasting, morning draw")
+                        EditorField(stringResource(R.string.marker_editor_note_optional)) {
+                            EditorTextField(note, { note = it }, stringResource(R.string.marker_editor_note_placeholder))
                         }
-                        EditorField("Reference range from my report (optional)") {
-                            EditorTextField(referenceText, { referenceText = it }, "e.g. 2.0–5.0 (your report's own range)")
+                        EditorField(stringResource(R.string.marker_editor_reference_optional)) {
+                            EditorTextField(referenceText, { referenceText = it }, stringResource(R.string.marker_editor_reference_placeholder))
                         }
                         Text(
-                            "NOOP never fills this in — it only shows back exactly what you type from your own report.",
+                            stringResource(R.string.marker_editor_noop_never_fills_this_in),
                             style = NoopType.footnote,
                             color = Palette.textTertiary,
                         )
@@ -256,17 +260,16 @@ fun MarkerEditorScreen(
             }
 
             Text(
-                "Lab Book keeps your own numbers — it doesn't test, read, or judge them, and it's not medical " +
-                    "advice. Everything stays on this phone.",
+                stringResource(R.string.marker_editor_lab_book_keeps_your_own_numbers),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LinkText("Cancel", color = Palette.textSecondary) { onDismiss() }
+                LinkText(stringResource(R.string.sleep_cancel), color = Palette.textSecondary) { onDismiss() }
                 Spacer(Modifier.weight(1f))
                 Box(modifier = Modifier.width(160.dp)) {
-                    PrimaryActionButton("Save", Icons.Filled.Add, enabled = drafts.isNotEmpty()) {
+                    PrimaryActionButton(stringResource(R.string.marker_editor_save), Icons.Filled.Add, enabled = drafts.isNotEmpty()) {
                         if (drafts.isNotEmpty()) onSave(drafts)
                     }
                 }
@@ -307,7 +310,7 @@ private fun CatalogList(search: String, onPick: (MarkerDefinition) -> Unit) {
             }
         }
         if (filtered.isEmpty()) {
-            Text("No match. Add it as a custom marker below.", style = NoopType.footnote, color = Palette.textTertiary, modifier = Modifier.padding(vertical = 8.dp))
+            Text(stringResource(R.string.marker_editor_no_match_add_it_as), style = NoopType.footnote, color = Palette.textTertiary, modifier = Modifier.padding(vertical = 8.dp))
         }
     }
 }
@@ -319,6 +322,7 @@ private fun DateRow(millis: Long, onPick: (Long) -> Unit) {
     val context = LocalContext.current
     val cal = remember(millis) { Calendar.getInstance().apply { timeInMillis = millis } }
     val label = remember(millis) { SimpleDateFormat("d MMM yyyy", Locale.US).format(java.util.Date(millis)) }
+    val dateTakenCd = stringResource(R.string.marker_editor_cd_date_taken)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -339,7 +343,7 @@ private fun DateRow(millis: Long, onPick: (Long) -> Unit) {
                 ).apply { datePicker.maxDate = System.currentTimeMillis() }.show()
             }
             .padding(horizontal = 12.dp, vertical = 11.dp)
-            .semantics { contentDescription = "Date taken" },
+            .semantics { contentDescription = dateTakenCd },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

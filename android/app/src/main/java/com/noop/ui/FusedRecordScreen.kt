@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -74,6 +77,7 @@ import kotlin.math.roundToInt
 data class FusedRow(
     val point: FusedMetricPoint,
     val label: String,
+    @androidx.annotation.StringRes val labelRes: Int = 0,
     val accent: androidx.compose.ui.graphics.Color? = null,
 )
 
@@ -89,33 +93,54 @@ data class FusedRecord(
     val contributingSourceCount: Int,
 )
 
+/** Localized metric-row label — the adapter's [FusedRow.labelRes] when present, else its English fallback. */
+@Composable
+private fun fusedRowLabel(row: FusedRow): String =
+    if (row.labelRes != 0) stringResource(row.labelRes) else row.label
+
+/** Localized DISPLAY for a MetricArbitrationPolicy.reason() value (the engine returns canonical en-US). */
+@Composable
+private fun fusedReasonText(reason: String): String = when (reason) {
+    "counts directly" -> stringResource(R.string.fused_reason_counts_directly)
+    "step estimate" -> stringResource(R.string.fused_reason_step_estimate)
+    "best stager" -> stringResource(R.string.fused_reason_best_stager)
+    "computed stages" -> stringResource(R.string.fused_reason_computed_stages)
+    "phone sleep buckets" -> stringResource(R.string.fused_reason_phone_sleep_buckets)
+    "worn sensor" -> stringResource(R.string.fused_reason_worn_sensor)
+    "direct sensor" -> stringResource(R.string.fused_reason_direct_sensor)
+    "computed on device" -> stringResource(R.string.fused_reason_computed_on_device)
+    "phone aggregate" -> stringResource(R.string.fused_reason_phone_aggregate)
+    "estimate" -> stringResource(R.string.fused_reason_estimate)
+    else -> reason
+}
+
 // MARK: - Screen
 
 @Composable
 fun FusedRecordScreen(
     record: FusedRecord,
-    dayLabel: String = "Today",
+    dayLabel: String = stringResource(R.string.fused_day_today),
     modifier: Modifier = Modifier,
 ) {
     // The metric currently open in the conflict-compare dialog (null = closed).
     var comparing by remember { mutableStateOf<FusedRow?>(null) }
 
     val isMultiSource = record.contributingSourceCount > 1
-    val deviceNoun = "this device"
+    val deviceNoun = stringResource(R.string.fused_device_noun)
 
     val subtitle = if (isMultiSource) {
-        "$dayLabel · best signal per metric, from ${record.contributingSourceCount} sources. Everything stays on $deviceNoun."
+        stringResource(R.string.fused_subtitle_multi, dayLabel, record.contributingSourceCount, deviceNoun)
     } else {
-        "$dayLabel · your record, on $deviceNoun."
+        stringResource(R.string.fused_subtitle_single, dayLabel, deviceNoun)
     }
 
-    ScreenScaffold(title = "Your Data, Fused", subtitle = subtitle, modifier = modifier) {
+    ScreenScaffold(title = stringResource(R.string.fused_title), subtitle = subtitle, modifier = modifier) {
         if (isMultiSource) DayBadgeRow(record.dayOwner)
 
         if (record.rows.isEmpty()) {
             DataPendingNote(
-                title = "Nothing to fuse yet",
-                body = "Import a WHOOP export, Health Connect or a second band and your best-sourced record builds here — on this device.",
+                title = stringResource(R.string.fused_empty_title),
+                body = stringResource(R.string.fused_empty_body),
             )
         } else {
             NoopCard(padding = 0.dp) {
@@ -150,9 +175,9 @@ fun FusedRecordScreen(
 @Composable
 private fun DayBadgeRow(owner: FusionSource?) {
     val text = if (owner != null) {
-        "Today's scores owned by ${owner.displayName}"
+        stringResource(R.string.fused_day_owner, owner.displayName)
     } else {
-        "Scores still calibrating — no single day-owner yet"
+        stringResource(R.string.fused_day_calibrating)
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -192,7 +217,7 @@ private fun PrivacyNote(deviceNoun: String) {
             modifier = Modifier.size(13.dp),
         )
         Text(
-            "Fused on $deviceNoun. Nothing leaves it — no account, no cloud.",
+            stringResource(R.string.fused_privacy_note, deviceNoun),
             style = NoopType.footnote,
             color = Palette.textTertiary,
         )
@@ -203,7 +228,7 @@ private fun PrivacyNote(deviceNoun: String) {
 @Composable
 private fun DisclaimerNote() {
     Text(
-        "NOOP picks the best-sourced number and shows you where each came from. It's for wellness and curiosity — it doesn't diagnose or replace medical advice.",
+        stringResource(R.string.fused_record_noop_picks_the_best_sourced),
         style = NoopType.footnote,
         color = Palette.textTertiary,
         modifier = Modifier.padding(horizontal = 4.dp),
@@ -222,13 +247,14 @@ private fun FusedMetricRow(
     val accent = row.accent ?: Palette.textPrimary
     val isConflict = point.agreement == AgreementState.CONFLICT
 
+    val compareSourcesLabel = stringResource(R.string.fused_compare_sources_cd)
     val rowModifier = if (isConflict) {
         Modifier
             .fillMaxWidth()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClickLabel = "Compare sources",
+                onClickLabel = compareSourcesLabel,
             ) { onCompare() }
     } else {
         Modifier.fillMaxWidth()
@@ -245,7 +271,7 @@ private fun FusedMetricRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                row.label,
+                fusedRowLabel(row),
                 style = NoopType.headline,
                 color = Palette.textPrimary,
                 modifier = Modifier.weight(1f),
@@ -264,9 +290,9 @@ private fun FusedMetricRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SourceBadge("from ${point.winningSource.displayName}", tint = Palette.accent)
+                SourceBadge(stringResource(R.string.fused_from_source, point.winningSource.displayName), tint = Palette.accent)
                 point.contributors.firstOrNull()?.reason?.let { reason ->
-                    Text(reason, style = NoopType.footnote, color = Palette.textTertiary)
+                    Text(fusedReasonText(reason), style = NoopType.footnote, color = Palette.textTertiary)
                 }
             }
 
@@ -283,7 +309,7 @@ private fun AgreementLine(point: FusedMetricPoint, onCompare: () -> Unit) {
 
         AgreementState.AGREE -> if (other != null) {
             Text(
-                "${other.source.displayName} agrees: ${FusionFormat.value(other.value, point.metric)}",
+                stringResource(R.string.fused_agree, other.source.displayName, FusionFormat.value(other.value, point.metric)),
                 style = NoopType.footnote,
                 color = Palette.textTertiary,
             )
@@ -294,9 +320,9 @@ private fun AgreementLine(point: FusedMetricPoint, onCompare: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                StatePill("Differs slightly", tone = StrandTone.Neutral, showsDot = false)
+                StatePill(stringResource(R.string.fused_differs_slightly), tone = StrandTone.Neutral, showsDot = false)
                 Text(
-                    "${other.source.displayName}: ${FusionFormat.value(other.value, point.metric)}",
+                    stringResource(R.string.fused_other_value, other.source.displayName, FusionFormat.value(other.value, point.metric)),
                     style = NoopType.footnote,
                     color = Palette.textSecondary,
                 )
@@ -311,7 +337,7 @@ private fun AgreementLine(point: FusedMetricPoint, onCompare: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            StatePill("Sources differ", tone = StrandTone.Warning)
+            StatePill(stringResource(R.string.fused_sources_differ), tone = StrandTone.Warning)
             Text(
                 conflictSummary(point),
                 style = NoopType.footnote,
@@ -330,9 +356,10 @@ private fun AgreementLine(point: FusedMetricPoint, onCompare: () -> Unit) {
     }
 }
 
+@Composable
 private fun conflictSummary(point: FusedMetricPoint): String {
-    val other = point.contributors.drop(1).firstOrNull() ?: return "Tap to compare"
-    return "${other.source.displayName} says ${FusionFormat.value(other.value, point.metric)} — tap to compare"
+    val other = point.contributors.drop(1).firstOrNull() ?: return stringResource(R.string.fused_tap_to_compare)
+    return stringResource(R.string.fused_conflict_summary, other.source.displayName, FusionFormat.value(other.value, point.metric))
 }
 
 // MARK: - Conflict-compare dialog
@@ -353,9 +380,9 @@ private fun ConflictCompareDialog(row: FusedRow, onDismiss: () -> Unit) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Metrics.gap),
             ) {
-                SectionHeader(title = row.label, overline = "Sources differ")
+                SectionHeader(title = fusedRowLabel(row), overline = stringResource(R.string.fused_dialog_overline))
                 Text(
-                    "Your bands report different numbers. Here's every source, and the one NOOP is using.",
+                    stringResource(R.string.fused_record_your_bands_report_different_numbers_here),
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
@@ -385,7 +412,7 @@ private fun ConflictCompareDialog(row: FusedRow, onDismiss: () -> Unit) {
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            "NOOP shows the ${winner.source.displayName} reading because it ${winner.reason} for this metric — a higher-trust source here, not a verdict that the others are wrong.",
+                            stringResource(R.string.fused_dialog_explainer, winner.source.displayName, fusedReasonText(winner.reason)),
                             style = NoopType.subhead,
                             color = Palette.textSecondary,
                         )
@@ -397,7 +424,7 @@ private fun ConflictCompareDialog(row: FusedRow, onDismiss: () -> Unit) {
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Done", style = NoopType.headline, color = Palette.accent)
+                        Text(stringResource(R.string.today_done), style = NoopType.headline, color = Palette.accent)
                     }
                 }
             }
@@ -411,15 +438,18 @@ private fun ContributorRow(
     metricKey: String,
     isWinner: Boolean,
 ) {
+    val inUseSuffix = if (isWinner) stringResource(R.string.fused_contributor_in_use) else ""
+    val rowCd = stringResource(
+        R.string.fused_contributor_cd,
+        contrib.source.displayName,
+        FusionFormat.value(contrib.value, metricKey),
+        inUseSuffix,
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp)
-            .semantics {
-                contentDescription =
-                    "${contrib.source.displayName}, ${FusionFormat.value(contrib.value, metricKey)}" +
-                    if (isWinner) ", in use" else ""
-            },
+            .semantics { contentDescription = rowCd },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -435,9 +465,9 @@ private fun ContributorRow(
                     contrib.source.displayName,
                     tint = if (isWinner) Palette.accent else Palette.textTertiary,
                 )
-                if (isWinner) StatePill("Using", tone = StrandTone.Accent, showsDot = true)
+                if (isWinner) StatePill(stringResource(R.string.fused_using), tone = StrandTone.Accent, showsDot = true)
             }
-            Text(contrib.reason, style = NoopType.footnote, color = Palette.textTertiary)
+            Text(fusedReasonText(contrib.reason), style = NoopType.footnote, color = Palette.textTertiary)
         }
         Text(
             FusionFormat.value(contrib.value, metricKey),

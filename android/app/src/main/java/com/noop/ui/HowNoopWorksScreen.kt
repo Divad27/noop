@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.ui.res.stringResource
+import com.noop.R
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +60,8 @@ import androidx.compose.ui.unit.dp
  * recording sensor-blue, provenance verified-cyan). Mirror the macOS/iOS section order
  * exactly so the three platforms stay in lockstep.
  */
+// i18n: title/body here are non-rendered fallbacks; the UI resolves localised copy via
+//   primerCopy() (R.string.how_noop_works_{sleep,scores,recording,provenance}_{title,body}).
 private enum class PrimerSection(
     val title: String,
     val body: String,
@@ -157,10 +162,10 @@ private fun Header(onClose: () -> Unit) {
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Overline("The basics", color = Palette.textTertiary)
-            Text("How NOOP works", style = NoopType.display(26f), color = Palette.textPrimary)
+            Overline(stringResource(R.string.how_noop_works_header_overline), color = Palette.textTertiary)
+            Text(stringResource(R.string.how_noop_works_how_noop_works), style = NoopType.display(26f), color = Palette.textPrimary)
             Text(
-                "Sleep · scores · recording · where your numbers come from",
+                stringResource(R.string.how_noop_works_sleep_scores_recording_where_your),
                 style = NoopType.caption,
                 color = Palette.textSecondary,
             )
@@ -168,7 +173,7 @@ private fun Header(onClose: () -> Unit) {
         IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
             Icon(
                 Icons.Filled.Close,
-                contentDescription = "Close",
+                contentDescription = stringResource(R.string.adddevice_close),
                 tint = Palette.textTertiary,
                 modifier = Modifier.size(22.dp),
             )
@@ -182,11 +187,9 @@ private fun Header(onClose: () -> Unit) {
 private fun IntroCard() {
     NoopCard(padding = 20.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Overline("The one rule")
+            Overline(stringResource(R.string.how_noop_works_intro_overline))
             Text(
-                "NOOP never shows you a number it had to make up. If a score isn't ready, " +
-                    "it tells you why and what to do next. Everything here runs on your " +
-                    "device, from your strap.",
+                stringResource(R.string.how_noop_works_noop_never_shows_you_a_number),
                 style = NoopType.subhead,
                 color = Palette.textSecondary,
             )
@@ -209,12 +212,27 @@ private fun LegendDot(section: PrimerSection) {
 
 // MARK: - Primer card (tinted glyph/headline + body)
 
+/** Localised (title, body) for a primer section, resolved at the @Composable render point. */
+@Composable
+private fun primerCopy(section: PrimerSection): Pair<String, String> = when (section) {
+    PrimerSection.SLEEP -> stringResource(R.string.how_noop_works_sleep_title) to
+        stringResource(R.string.how_noop_works_sleep_body)
+    PrimerSection.SCORES -> stringResource(R.string.how_noop_works_scores_title) to
+        stringResource(R.string.how_noop_works_scores_body)
+    PrimerSection.RECORDING -> stringResource(R.string.how_noop_works_recording_title) to
+        stringResource(R.string.how_noop_works_recording_body)
+    PrimerSection.PROVENANCE -> stringResource(R.string.how_noop_works_provenance_title) to
+        stringResource(R.string.how_noop_works_provenance_body)
+}
+
 @Composable
 private fun PrimerCard(section: PrimerSection) {
+    val (title, body) = primerCopy(section)
+    val cd = stringResource(R.string.how_noop_works_primer_cd, title, body)
     NoopCard(padding = 20.dp, tint = section.accent) {
         Column(
             modifier = Modifier.semantics {
-                contentDescription = "${section.title}. ${section.body}"
+                contentDescription = cd
             },
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -228,9 +246,9 @@ private fun PrimerCard(section: PrimerSection) {
                     tint = section.accent,
                     modifier = Modifier.size(18.dp),
                 )
-                Text(section.title, style = NoopType.headline, color = Palette.textPrimary)
+                Text(title, style = NoopType.headline, color = Palette.textPrimary)
             }
-            Text(section.body, style = NoopType.subhead, color = Palette.textSecondary)
+            Text(body, style = NoopType.subhead, color = Palette.textSecondary)
         }
     }
 }
@@ -240,8 +258,7 @@ private fun PrimerCard(section: PrimerSection) {
 @Composable
 private fun FooterNote() {
     Text(
-        "NOOP never makes up a number. When it can't compute one honestly it tells you " +
-            "what's missing and what to do, rather than showing a fake value.",
+        stringResource(R.string.how_noop_works_noop_never_makes_up_a_number),
         style = NoopType.footnote,
         color = Palette.textTertiary,
         modifier = Modifier
@@ -265,7 +282,7 @@ private fun Footer(onClose: () -> Unit) {
                 contentColor = Palette.surfaceBase,
             ),
         ) {
-            Text("Got it", style = NoopType.captionNumber)
+            Text(stringResource(R.string.scoring_got_it), style = NoopType.captionNumber)
         }
     }
 }

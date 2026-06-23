@@ -28,10 +28,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.noop.R
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -66,12 +68,18 @@ private fun seriesSummary(values: List<Double>, noun: String): String {
         "low ${formatLineValue(lo)}, high ${formatLineValue(hi)}"
 }
 
-/** Per-stage total summary for the Hypnogram (deep · REM · light · awake, naming only stages present). */
-private fun hypnogramSummary(stages: List<Pair<String, Float>>): String {
-    if (stages.isEmpty()) return "Sleep stages, no data"
+/**
+ * Per-stage total summary for the Hypnogram (deep · REM · light · awake, naming only stages present).
+ *
+ * The spoken labels are passed in (resolved via stringResource at the @Composable call site) because
+ * this is a non-@Composable helper: [noData] is the empty/degenerate text, [prefix] the "Sleep stages, "
+ * lead-in the per-stage parts are appended to.
+ */
+private fun hypnogramSummary(stages: List<Pair<String, Float>>, noData: String, prefix: String): String {
+    if (stages.isEmpty()) return noData
     // Weights are relative widths, not minutes, so report the share of the night in each stage.
     val total = stages.map { if (it.second.isFinite() && it.second > 0f) it.second else 0f }.sum()
-    if (total <= 0f) return "Sleep stages, no data"
+    if (total <= 0f) return noData
     val order = listOf("deep", "rem", "light", "awake")
     val byStage = LinkedHashMap<String, Float>()
     for (key in order) byStage[key] = 0f
@@ -90,7 +98,7 @@ private fun hypnogramSummary(stages: List<Pair<String, Float>>): String {
             "$pct percent $label"
         }
     }
-    return if (parts.isEmpty()) "Sleep stages, no data" else "Sleep stages, " + parts.joinToString(", ")
+    return if (parts.isEmpty()) noData else prefix + parts.joinToString(", ")
 }
 
 // MARK: - Shared geometry helpers
@@ -390,10 +398,16 @@ fun MultiLineChart(
 
     // ONE collapsed semantics node: summarise across all series (count of lines + overall low/high) so
     // the a11y delegate reads a single line rather than walking the canvas. Changes no drawing.
+    val trendsNoData = stringResource(R.string.chart_trends_no_data)
     val axSummary = run {
         val all = cleanSeries.flatMap { it.values }
-        if (all.isEmpty()) "Trends, no data"
-        else "Trends, ${cleanSeries.size} series, low ${formatLineValue(all.min())}, high ${formatLineValue(all.max())}"
+        if (all.isEmpty()) trendsNoData
+        else stringResource(
+            R.string.chart_trends_summary,
+            cleanSeries.size,
+            formatLineValue(all.min()),
+            formatLineValue(all.max()),
+        )
     }
 
     Canvas(modifier = modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = axSummary }) {
@@ -614,7 +628,12 @@ fun Hypnogram(
     // well + the empty/zero-weight state are preserved exactly.
     // ONE collapsed semantics node (per-stage share) so the a11y delegate reads a single sleep-stage
     // summary instead of walking each band — the Android twin of the iOS Hypnogram's single node.
-    val axSummary = hypnogramSummary(stages)
+    // Spoken labels hoisted here (stringResource is @Composable-only) and passed into the helper.
+    val axSummary = hypnogramSummary(
+        stages,
+        noData = stringResource(R.string.chart_sleep_stages_no_data),
+        prefix = stringResource(R.string.chart_sleep_stages_prefix),
+    )
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -672,7 +691,8 @@ fun SegmentBar(
     // drawWithCache (keyed on segments + the implicit size); the draw lambda replays the segment list.
     // ONE collapsed semantics node so the a11y delegate doesn't walk each segment. The segments are a
     // caller-supplied colour breakdown with no inherent label, so the summary is just the segment count.
-    val axSummary = if (segments.isEmpty()) "Breakdown, no data" else "Breakdown, ${segments.size} segments"
+    val axSummary = if (segments.isEmpty()) stringResource(R.string.chart_breakdown_no_data)
+        else stringResource(R.string.chart_breakdown_segments, segments.size)
     Box(modifier = modifier.fillMaxWidth().height(height).clearAndSetSemantics { contentDescription = axSummary }.drawWithCache {
         val w = size.width
         val h = size.height

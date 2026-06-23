@@ -27,9 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.noop.R
 import com.noop.analytics.AutoWorkoutDetector
 import com.noop.data.DailyMetric
 import kotlinx.coroutines.launch
@@ -75,11 +77,6 @@ private val autoNudgeTimeFmt: DateTimeFormatter =
 
 private fun hhmm(epochSec: Long): String = autoNudgeTimeFmt.format(Instant.ofEpochSecond(epochSec))
 
-/** "Looks like a workout around 14:05–14:32 (avg HR 148, 27 min). Save it?" — verbatim from iOS. */
-private fun promptText(w: AutoWorkoutDetector.DetectedWorkout): String =
-    "Looks like a workout around ${hhmm(w.startSec)}–${hhmm(w.endSec)} " +
-        "(avg HR ${w.avgBpm}, ${w.durationMin} min). Save it?"
-
 @Composable
 fun AutoWorkoutNudgeCard(
     viewModel: AppViewModel,
@@ -120,8 +117,15 @@ fun AutoWorkoutNudgeCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Looks like a workout", style = NoopType.headline, color = Palette.textPrimary)
+                    Text(
+                        stringResource(R.string.autoworkout_headline),
+                        style = NoopType.headline,
+                        color = Palette.textPrimary,
+                    )
                 }
+                // stringResource is @Composable-only, so the dismiss content description is hoisted
+                // here, above the non-composable `semantics { … }` lambda that consumes it.
+                val dismissCd = stringResource(R.string.autoworkout_dismiss_cd)
                 // Standard × dismiss → record the window durably so it never re-prompts.
                 IconButton(
                     onClick = {
@@ -132,7 +136,7 @@ fun AutoWorkoutNudgeCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .size(Metrics.iconButton)
-                        .semantics { contentDescription = "Dismiss this workout suggestion" },
+                        .semantics { contentDescription = dismissCd },
                 ) {
                     Icon(
                         Icons.Filled.Close,
@@ -143,7 +147,14 @@ fun AutoWorkoutNudgeCard(
                 }
             }
             Text(
-                promptText(w),
+                // Positional args: start, end (locale HH:mm), avg bpm, duration min. Verbatim from iOS.
+                stringResource(
+                    R.string.autoworkout_prompt,
+                    hhmm(w.startSec),
+                    hhmm(w.endSec),
+                    w.avgBpm,
+                    w.durationMin,
+                ),
                 style = NoopType.footnote,
                 color = Palette.textSecondary,
             )
@@ -178,7 +189,13 @@ fun AutoWorkoutNudgeCard(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Palette.accent, contentColor = Palette.surfaceBase,
                     ),
-                ) { Text(if (saving) "Saving…" else "Save it") }
+                ) {
+                    Text(
+                        stringResource(
+                            if (saving) R.string.autoworkout_saving else R.string.autoworkout_save,
+                        ),
+                    )
+                }
 
                 OutlinedButton(
                     enabled = !saving,
@@ -187,7 +204,12 @@ fun AutoWorkoutNudgeCard(
                         handledThisSession = true
                         candidate = null
                     },
-                ) { Text("Not a workout", color = Palette.textSecondary) }
+                ) {
+                    Text(
+                        stringResource(R.string.autoworkout_not_a_workout),
+                        color = Palette.textSecondary,
+                    )
+                }
             }
         }
     }
